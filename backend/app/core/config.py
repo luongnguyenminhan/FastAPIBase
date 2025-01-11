@@ -1,11 +1,15 @@
-from pydantic import BaseSettings
+import os
+from dotenv import load_dotenv # type: ignore
 
-class Settings(BaseSettings):
-    PROJECT_NAME: str = "FastAPI Project"
-    API_V1_STR: str = "/api/v1"
-    SQLALCHEMY_DATABASE_URI: str = "mysql+mysqlconnector://user:password@localhost:3306/dbname"
+load_dotenv()
 
-    class Config:
-        case_sensitive = True
+PROJECT_NAME = "FastAPI Project"
+API_V1_STR = "/api/v1"
+DB_USER = os.getenv("DB_USER", "root")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "11minhan")
+DB_HOST = os.getenv("DB_HOST", "mysql")  # Default to Docker service name
+DB_PORT = os.getenv("DB_PORT", "3306")
+DB_NAME = os.getenv("DB_NAME", "test")
+DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-settings = Settings()
+SQLALCHEMY_DATABASE_URI = DATABASE_URL
