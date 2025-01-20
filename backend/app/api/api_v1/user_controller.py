@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from typing import List, Dict
 from app.services.services.user_service import UserService
-from app.schemas.response_schema import UserResponse, MessageResponse
+from app.schemas.response_schema import ItemResponse, UserResponse, MessageResponse
 from app.schemas.request_schema import UserRequest
 
 user_router = APIRouter()

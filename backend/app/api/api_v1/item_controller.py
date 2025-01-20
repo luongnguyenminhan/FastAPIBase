@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from typing import List
 from app.services.services.item_service import ItemService
-from app.schemas.response_schema import ItemResponse
+from app.schemas.response_schema import ItemResponse, MessageResponse
 from app.schemas.request_schema import ItemRequest
 
 item_router = APIRouter()
