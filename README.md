@@ -17,17 +17,21 @@ A scalable FastAPI project template with modular architecture and API versioning
 <summary>Core Technologies</summary>
 <br>
 
+<div align="center">
+
 | Category | Technologies |
 |----------|-------------|
 | 🐍 Core | Python 3.8+, FastAPI, Uvicorn ASGI |
 | 📦 Structure | Modular Architecture, API Versioning |
 | 🛠️ Development | Docker & Compose, Hot Reload, Swagger UI |
 
+</div>
+
 </details>
 
 ## ✨ Features
 
-<div align="center">
+
 <table>
 <tr>
     <td align="center">📦 <b>API Versioning</b><br>Clean and maintainable version control</td>
@@ -35,7 +39,7 @@ A scalable FastAPI project template with modular architecture and API versioning
     <td align="center">🎯 <b>Modular Design</b><br>Scalable architecture</td>
 </tr>
 </table>
-</div>
+
 
 ## 🏗️ Project Structure
 ```
@@ -105,3 +109,4 @@ Access at: `http://127.0.0.1:8000`
 <sub>⭐ Star this repository if you found it helpful!</sub>
 
 </div>
+````
