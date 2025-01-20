@@ -30,52 +30,58 @@ from app.schemas.request_schema import (
 
 api_router = APIRouter()  # Changed variable name to api_router
 
+
 # Advanced User endpoints
 @api_router.get("/users/active", response_model=List[UserResponse])
 async def get_active_users(
-    user_service: UserService = Depends(UserService.get_self)
+        user_service: UserService = Depends(UserService.get_self)
 ):
     return await user_service.get_active_users()
 
+
 @api_router.post("/users/metrics", response_model=UserMetricsResponse)
 async def calculate_user_metrics(
-    request: UserMetricsRequest,
-    user_service: UserService = Depends(UserService.get_self)
+        request: UserMetricsRequest,
+        user_service: UserService = Depends(UserService.get_self)
 ):
     return await user_service.calculate_user_metrics(request.metric_values)
+
 
 # Advanced Item endpoints
 @api_router.patch("/items/{item_id}/stock", response_model=ItemResponse)
 async def update_item_stock(
-    item_id: int,
-    request: ItemStockUpdateRequest,
-    item_service: ItemService = Depends(ItemService.get_self)
+        item_id: int,
+        request: ItemStockUpdateRequest,
+        item_service: ItemService = Depends(ItemService.get_self)
 ):
     return await item_service.update_stock(item_id, request.quantity)
 
+
 @api_router.get("/items/{item_id}/value", response_model=ItemValueResponse)
 async def calculate_item_value(
-    item_id: int,
-    quantity: int,
-    item_service: ItemService = Depends(ItemService.get_self)
+        item_id: int,
+        quantity: int,
+        item_service: ItemService = Depends(ItemService.get_self)
 ):
     item = await item_service.get(item_id)
     return await item_service.calculate_total_value(item.price, quantity)
 
+
 @api_router.get("/items/{item_id}/discount", response_model=ItemDiscountResponse)
 async def calculate_item_discount(
-    item_id: int,
-    discount_percentage: float = Query(..., gt=0, lt=100),
-    item_service: ItemService = Depends(ItemService.get_self)
+        item_id: int,
+        discount_percentage: float = Query(..., gt=0, lt=100),
+        item_service: ItemService = Depends(ItemService.get_self)
 ):
     item = await item_service.get(item_id)
     return await item_service.calculate_discount(item.price, discount_percentage)
 
+
 # Advanced Math operations
 @api_router.post("/math/batch")
 async def batch_calculate(
-    operations: List[MathOperationRequest],
-    math_service: MathService = Depends(MathService.get_self)
+        operations: List[MathOperationRequest],
+        math_service: MathService = Depends(MathService.get_self)
 ):
     results = []
     for op in operations:
@@ -89,5 +95,6 @@ async def batch_calculate(
             "result": result
         })
     return results
+
 
 __all__ = ["api_router"]  # Explicitly export api_router

@@ -33,6 +33,7 @@ from app.db.base import get_db
 
 T = TypeVar('T')
 
+
 def service_method(func: Callable):
     """
     Decorator for service methods to handle exceptions
@@ -43,6 +44,7 @@ def service_method(func: Callable):
     Returns:
         Callable: The wrapped service method with exception handling
     """
+
     @wraps(func)
     async def wrapper(self, *args, **kwargs):
         try:
@@ -54,7 +56,9 @@ def service_method(func: Callable):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=str(e)
             )
+
     return wrapper
+
 
 class BaseService(Generic[T]):
     """

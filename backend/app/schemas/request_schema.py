@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from decimal import Decimal
 
+
 # Math Operation Request
 class MathOperationRequest(BaseModel):
     """
@@ -27,6 +28,7 @@ class MathOperationRequest(BaseModel):
     """
     x: float = Field(..., description="First number")
     y: float = Field(..., description="Second number")
+
 
 # User related requests
 class UserRequest(BaseModel):
@@ -54,6 +56,7 @@ class UserRequest(BaseModel):
             }
         }
 
+
 class UserMetricsRequest(BaseModel):
     """
     Schema for user metrics request
@@ -62,6 +65,7 @@ class UserMetricsRequest(BaseModel):
         metric_values (List[float]): List of metric values to calculate
     """
     metric_values: List[float] = Field(..., description="List of metric values to calculate")
+
 
 # Item related requests
 class ItemRequest(BaseModel):
@@ -97,6 +101,7 @@ class ItemRequest(BaseModel):
             }
         }
 
+
 class ItemUpdateRequest(BaseModel):
     """
     Schema for item update request
@@ -116,6 +121,7 @@ class ItemUpdateRequest(BaseModel):
     is_active: Optional[bool] = None
     stock: Optional[int] = None
 
+
 class ItemStockUpdateRequest(BaseModel):
     """
     Schema for item stock update request
@@ -131,6 +137,7 @@ class ItemStockUpdateRequest(BaseModel):
                 "quantity": 10
             }
         }
+
 
 class ItemDiscountRequest(BaseModel):
     """

@@ -25,6 +25,7 @@ from app.unit_of_work.unit_of_work import UnitOfWork
 from sqlalchemy.orm import Session
 from app.db.base import get_db
 
+
 class ItemService(BaseService[Item]):
     """
     Service class for managing items

@@ -20,6 +20,7 @@ from pydantic import ConfigDict
 
 Base = declarative_base()
 
+
 class BaseModel(Base):
     """
     Base model class for all database models
@@ -31,7 +32,7 @@ class BaseModel(Base):
         is_deleted (bool): The deletion status of the model
     """
     __abstract__ = True
-    
+
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     id = Column(Integer, primary_key=True, index=True)

@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from decimal import Decimal
 
+
 # Generic responses
 class MessageResponse(BaseModel):
     """
@@ -25,6 +26,7 @@ class MessageResponse(BaseModel):
         message (str): The message content
     """
     message: str
+
 
 class EchoResponse(BaseModel):
     """
@@ -36,6 +38,7 @@ class EchoResponse(BaseModel):
     """
     echo: str
     version: str
+
 
 # User related responses
 class UserResponse(BaseModel):
@@ -58,6 +61,7 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class UserMetricsResponse(BaseModel):
     """
     Schema for user metrics response
@@ -68,6 +72,7 @@ class UserMetricsResponse(BaseModel):
     """
     total: float
     average: float
+
 
 # Item related responses
 class ItemResponse(BaseModel):
@@ -96,6 +101,7 @@ class ItemResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class ItemWithOwnerResponse(ItemResponse):
     """
     Schema for item response with owner details
@@ -104,6 +110,7 @@ class ItemWithOwnerResponse(ItemResponse):
         owner (Optional[UserResponse]): The owner details of the item
     """
     owner: Optional[UserResponse] = None
+
 
 class ItemValueResponse(BaseModel):
     """
@@ -117,6 +124,7 @@ class ItemValueResponse(BaseModel):
     item_id: int
     quantity: int
     total_value: Decimal
+
 
 class ItemDiscountResponse(BaseModel):
     """

@@ -17,6 +17,7 @@ from .base_repository import BaseRepository
 from app.db.models.items import Item
 from sqlalchemy.orm import Session
 
+
 class ItemRepository(BaseRepository[Item]):
     """
     Repository class for managing items
@@ -45,7 +46,7 @@ class ItemRepository(BaseRepository[Item]):
             List[Item]: A list of items owned by the user
         """
         return self._dbSet.filter_by(owner_id=owner_id, is_deleted=False).all()
-    
+
     def get_by_category(self, category: str):
         """
         Get items by category
@@ -57,7 +58,7 @@ class ItemRepository(BaseRepository[Item]):
             List[Item]: A list of items in the specified category
         """
         return self._dbSet.filter_by(category=category, is_deleted=False).all()
-    
+
     def update_stock(self, id: int, quantity: int):
         """
         Update the stock of an item

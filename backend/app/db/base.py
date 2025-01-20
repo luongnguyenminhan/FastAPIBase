@@ -25,6 +25,7 @@ Base = declarative_base()
 max_retries = 5
 retry_delay = 5
 
+
 def create_engine_with_retry():
     """
     Create a SQLAlchemy engine with retry logic
@@ -64,8 +65,10 @@ def create_engine_with_retry():
                 print(f"Failed to connect to database after {max_retries} attempts")
                 raise e
 
+
 engine = create_engine_with_retry()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 def get_db():
     """

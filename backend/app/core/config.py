@@ -14,7 +14,7 @@ Version: 1.0.0
 """
 
 import os
-from dotenv import load_dotenv # type: ignore
+from dotenv import load_dotenv  # type: ignore
 
 load_dotenv()
 

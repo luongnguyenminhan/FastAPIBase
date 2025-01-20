@@ -17,6 +17,7 @@ from .base_repository import BaseRepository
 from app.db.models import User
 from sqlalchemy.orm import Session
 
+
 class UserRepository(BaseRepository[User]):
     """
     Repository class for managing users
@@ -33,7 +34,7 @@ class UserRepository(BaseRepository[User]):
             db (Session): The database session
         """
         super().__init__(User, db)
-        
+
     def get_by_email(self, email: str) -> User:
         """
         Get a user by email
@@ -45,7 +46,7 @@ class UserRepository(BaseRepository[User]):
             User: The user with the specified email
         """
         return self._dbSet.filter_by(email=email, is_deleted=False).first()
-    
+
     def get_active_users(self):
         """
         Get all active users

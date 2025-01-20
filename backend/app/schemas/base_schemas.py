@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from decimal import Decimal
 
+
 class UserBase(BaseModel):
     """
     Base schema for user model
@@ -28,6 +29,7 @@ class UserBase(BaseModel):
     email: str
     name: str
     is_active: Optional[bool] = True
+
 
 class ItemBase(BaseModel):
     """

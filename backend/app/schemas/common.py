@@ -16,6 +16,7 @@ from typing import List, TypeVar, Generic
 
 T = TypeVar('T')
 
+
 class PaginationParameter(BaseModel):
     """
     Schema for pagination parameters
@@ -26,6 +27,7 @@ class PaginationParameter(BaseModel):
     """
     page_index: int = Field(ge=1, default=1)
     page_size: int = Field(ge=1, default=10)
+
 
 class Pagination(BaseModel, Generic[T]):
     """
@@ -38,12 +40,12 @@ class Pagination(BaseModel, Generic[T]):
         page_size (int): The number of items per page
     """
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    
+
     items: List[T]
     total_count: int
     page_index: int
     page_size: int
-    
+
     @property
     def total_pages(self) -> int:
         """

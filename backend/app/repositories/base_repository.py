@@ -23,6 +23,7 @@ from app.db.models.base_model import BaseModel
 
 T = TypeVar('T', bound=BaseModel)
 
+
 class BaseRepository(Generic[T]):
     """
     Base repository class for managing database operations
@@ -155,7 +156,7 @@ class BaseRepository(Generic[T]):
             Pagination[T]: The paginated results
         """
         query = self._dbSet.filter_by(is_deleted=False)
-        
+
         # Get total count
         total_count = query.count()
 

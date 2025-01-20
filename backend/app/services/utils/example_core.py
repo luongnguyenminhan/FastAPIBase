@@ -12,6 +12,7 @@ Last Modified: 21 Jan 2024
 Version: 1.0.0
 """
 
+
 class MathOperations:
     """
     Utility class for basic mathematical operations
@@ -30,7 +31,7 @@ class MathOperations:
             float: The sum of the two numbers
         """
         return x + y
-    
+
     @staticmethod
     def subtract(x: float, y: float) -> float:
         """
@@ -44,7 +45,7 @@ class MathOperations:
             float: The difference between the two numbers
         """
         return x - y
-    
+
     @staticmethod
     def multiply(x: float, y: float) -> float:
         """
@@ -58,7 +59,7 @@ class MathOperations:
             float: The product of the two numbers
         """
         return x * y
-    
+
     @staticmethod
     def divide(x: float, y: float) -> float:
         """
@@ -77,7 +78,7 @@ class MathOperations:
         if y == 0:
             raise ValueError("Cannot divide by zero")
         return x / y
-    
+
     @staticmethod
     def power(x: float, y: float) -> float:
         """

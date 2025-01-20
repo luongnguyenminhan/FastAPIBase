@@ -23,6 +23,7 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.base import get_db
 
+
 class UserService(BaseService[User]):
     """
     Service class for managing users

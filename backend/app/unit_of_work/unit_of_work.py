@@ -29,6 +29,7 @@ from app.repositories.user_repository import UserRepository
 from app.repositories.item_repository import ItemRepository
 from contextlib import contextmanager
 
+
 class UnitOfWork:
     """
     Unit of Work implementation for managing database transactions and repositories.
@@ -49,7 +50,7 @@ class UnitOfWork:
         """
         self._session = session
         self._transaction = None
-        
+
         # Repository instances
         self._user_repository = None
         self._item_repository = None
@@ -110,7 +111,7 @@ class UnitOfWork:
         """
         if self._transaction:
             self._transaction.rollback()
-            
+
     def save(self):
         """
         Lưu các thay đổi vào cơ sở dữ liệu

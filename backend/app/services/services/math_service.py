@@ -23,6 +23,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.db.base import get_db
 
+
 class MathService:
     """
     Service class for performing mathematical operations
@@ -61,7 +62,7 @@ class MathService:
         """
         uow = UnitOfWork(db)
         return MathService(uow)
-    
+
     @service_method
     async def calculate_operation(self, operation: str, x: float, y: float) -> float:
         """

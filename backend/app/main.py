@@ -71,6 +71,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 async def startup_event():
     """
@@ -89,6 +90,7 @@ async def startup_event():
         pass
     except Exception as e:
         print(f"Lỗi khởi động: {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -109,6 +111,7 @@ async def shutdown_event():
     except Exception as e:
         print(f"Lỗi khi tắt: {e}")
 
+
 @app.get("/health", response_model=Dict[str, str])
 async def health_check():
     """
@@ -126,6 +129,7 @@ async def health_check():
         "status": "hoạt động",
         "version": "2.0.0"
     }
+
 
 @app.get("/test-db")
 async def test_db(db: Session = Depends(get_db)):
@@ -157,6 +161,7 @@ async def test_db(db: Session = Depends(get_db)):
             detail=f"Kết nối cơ sở dữ liệu thất bại: {str(e)}"
         )
 
+
 # Xử lý ngoại lệ
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
@@ -175,6 +180,7 @@ async def http_exception_handler(request, exc):
         content={"message": exc.detail},
     )
 
+
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):
     """
@@ -191,6 +197,7 @@ async def general_exception_handler(request, exc):
         status_code=500,
         content={"message": "Lỗi máy chủ nội bộ"},
     )
+
 
 # Bao gồm các router
 app.include_router(
