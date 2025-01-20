@@ -5,6 +5,7 @@ load_dotenv()
 
 PROJECT_NAME = "FastAPI Project"
 API_V1_STR = "/api/v1"
+API_V2_STR = "/api/v2"
 DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "11minhan")
 DB_HOST = os.getenv("DB_HOST", "mysql")  # Default to Docker service name

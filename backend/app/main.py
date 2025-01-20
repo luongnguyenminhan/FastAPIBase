@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import API_V1_STR, PROJECT_NAME
-from app.api.api_v1.api import api_router
+from app.core.config import API_V1_STR, API_V2_STR, PROJECT_NAME
+from app.api.api_v1.api import api_router as api_v1_router
+from app.api.api_v2.api import api_router as api_v2_router
 from app.db.base import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -24,4 +25,5 @@ async def test_db(db: Session = Depends(get_db)):
     except Exception as e:
         return {"status": "error", "message": f"Database connection failed: {str(e)}"}
 
-app.include_router(api_router, prefix=API_V1_STR)
+app.include_router(api_v1_router, prefix=API_V1_STR)
+app.include_router(api_v2_router, prefix=API_V2_STR)

@@ -1,5 +1,6 @@
 from typing import Generic, TypeVar, Callable
 from functools import wraps
+from app.unit_of_work.unit_of_work import UnitOfWork
 
 T = TypeVar('T')
 
@@ -13,8 +14,12 @@ def service_method(func: Callable):
     return wrapper
 
 class BaseService(Generic[T]):
-    def __init__(self, repository):
-        self.repository = repository
+    def __init__(self, uow: UnitOfWork):
+        self.uow = uow
+
+    @staticmethod
+    def get_self(uow: UnitOfWork):
+        raise NotImplementedError("Subclasses must implement get_self method")
 
     @service_method
     async def get(self, id: int):

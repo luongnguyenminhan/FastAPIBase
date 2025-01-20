@@ -1,54 +1,82 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-from typing import Generic, TypeVar, Type
-from contextlib import contextmanager
+from typing import Generic, TypeVar, Type, List
+from sqlalchemy.future import select
+from datetime import datetime
+from app.schemas.common import PaginationParameter, Pagination
+from app.db.models.base_model import BaseModel
 
-T = TypeVar('T')
+T = TypeVar('T', bound=BaseModel)
 
 class BaseRepository(Generic[T]):
     def __init__(self, model: Type[T], db: Session):
         self.model = model
         self.db = db
+        self._dbSet = db.query(model)
 
-    def begin_transaction(self):
-        return self.db.begin()
+    async def get_by_id_async(self, id: int) -> T:
+        result = await self.db.execute(
+            select(self.model).filter_by(id=id, is_deleted=False)
+        )
+        return result.scalar_one_or_none()
 
-    def commit(self):
-        self.db.commit()
+    async def get_all_async(self) -> List[T]:
+        result = await self.db.execute(
+            select(self.model).filter_by(is_deleted=False)
+        )
+        return result.scalars().all()
 
-    def rollback(self):
-        self.db.rollback()
+    async def add_async(self, entity: T) -> T:
+        entity.create_date = datetime.utcnow()
+        self.db.add(entity)
+        await self.db.flush()
+        return entity
 
-    @contextmanager
-    def transaction(self):
-        try:
-            yield
-            self.commit()
-        except Exception:
-            self.rollback()
-            raise
+    async def add_range_async(self, entities: List[T]):
+        current_time = datetime.utcnow()
+        for entity in entities:
+            entity.create_date = current_time
+        self.db.add_all(entities)
+        await self.db.flush()
 
-    def get(self, id: int):
-        return self.db.query(self.model).filter(self.model.id == id).first()
+    def update_async(self, entity: T):
+        entity.update_date = datetime.utcnow()
+        self._dbSet.update(entity)
 
-    def get_all(self):
-        return self.db.query(self.model).all()
+    def soft_delete_async(self, entity: T):
+        entity.is_deleted = True
+        self._dbSet.update(entity)
 
-    def create(self, obj_in):
-        with self.transaction():
-            obj_db = self.model(**obj_in.dict())
-            self.db.add(obj_db)
-            self.db.flush()
-            self.db.refresh(obj_db)
-            return obj_db
+    def soft_delete_range_async(self, entities: List[T]):
+        for entity in entities:
+            entity.is_deleted = True
+        self._dbSet.update(entities)
 
-    def update(self, id: int, obj_in: dict):
-        with self.transaction():
-            self.db.query(self.model).filter(self.model.id == id).update(obj_in)
-            return self.get(id)
+    def permanent_delete_async(self, entity: T):
+        self.db.delete(entity)
 
-    def delete(self, id: int):
-        with self.transaction():
-            obj_db = self.get(id)
-            if obj_db:
-                self.db.delete(obj_db)
-            return obj_db
+    def permanent_delete_list_async(self, entities: List[T]):
+        for entity in entities:
+            self.db.delete(entity)
+
+    async def to_pagination(self, pagination_parameter: PaginationParameter) -> Pagination[T]:
+        query = select(self.model).filter_by(is_deleted=False)
+        
+        # Get total count
+        count_result = await self.db.execute(select(func.count()).select_from(query))
+        total_count = count_result.scalar()
+
+        # Get paginated items
+        items_query = query.offset(
+            (pagination_parameter.page_index - 1) * pagination_parameter.page_size
+        ).limit(pagination_parameter.page_size)
+        
+        result = await self.db.execute(items_query)
+        items = result.scalars().all()
+
+        return Pagination(
+            items=items,
+            total_count=total_count,
+            page_index=pagination_parameter.page_index,
+            page_size=pagination_parameter.page_size
+        )
