@@ -196,32 +196,40 @@ async def general_exception_handler(request, exc):
 app.include_router(
     api_v1_router,
     prefix=API_V1_STR,
+    tags=["API"]
 )
 app.include_router(
     api_v2_router,
     prefix=API_V2_STR,
+    tags=["API"]
 )
 app.include_router(
     api_v1_user_router,
     prefix=f"{API_V1_STR}/users",
+    tags=["APIUsers"]
 )
 app.include_router(
     api_v1_item_router,
     prefix=f"{API_V1_STR}/items",
+    tags=["APIItems"]
 )
 app.include_router(
     api_v1_math_router,
     prefix=f"{API_V1_STR}/math",
+    tags=["APIMath"]
 )
 app.include_router(
     api_v2_user_router,
     prefix=f"{API_V2_STR}/users",
+    tags=["APIUsers"]
 )
 app.include_router(
     api_v2_item_router,
     prefix=f"{API_V2_STR}/items",
+    tags=["APIItems"]
 )
 app.include_router(
     api_v2_math_router,
     prefix=f"{API_V2_STR}/math",
+    tags=["APIMath"]
 )

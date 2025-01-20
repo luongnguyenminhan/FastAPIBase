@@ -5,7 +5,7 @@ from app.schemas.request_schema import MathOperationRequest
 math_router = APIRouter()
 
 # Math operations endpoints
-@math_router.post("/{operation}")
+@math_router.post("/{operation}", operation_id="calculate_math_v1")
 async def calculate(
     operation: str,
     request: MathOperationRequest,

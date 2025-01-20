@@ -7,28 +7,28 @@ from app.schemas.request_schema import ItemRequest
 item_router = APIRouter()
 
 # Item endpoints
-@item_router.get("/{item_id}", response_model=ItemResponse)
+@item_router.get("/{item_id}", response_model=ItemResponse, operation_id="get_item_v1")
 async def get_item(
     item_id: int,
     item_service: ItemService = Depends(ItemService.get_self)
 ):
     return await item_service.get(item_id)
 
-@item_router.post("/", response_model=ItemResponse)
+@item_router.post("/", response_model=ItemResponse, operation_id="create_item_v1")
 async def create_item(
     item: ItemRequest,
     item_service: ItemService = Depends(ItemService.get_self)
 ):
     return await item_service.create(item)
 
-@item_router.get("/category/{category}", response_model=List[ItemResponse])
+@item_router.get("/category/{category}", response_model=List[ItemResponse], operation_id="get_items_by_category_v1")
 async def get_items_by_category(
     category: str,
     item_service: ItemService = Depends(ItemService.get_self)
 ):
     return await item_service.get_by_category(category)
 
-@item_router.put("/{item_id}/stock")
+@item_router.put("/{item_id}/stock", operation_id="update_item_stock_v1")
 async def update_item_stock(
     item_id: int,
     quantity: int,
@@ -36,7 +36,7 @@ async def update_item_stock(
 ):
     return await item_service.update_stock(item_id, quantity)
 
-@item_router.post("/calculate-value")
+@item_router.post("/calculate-value", operation_id="calculate_total_value_v1")
 async def calculate_total_value(
     price: float,
     quantity: int,
@@ -44,7 +44,7 @@ async def calculate_total_value(
 ):
     return await item_service.calculate_total_value(price, quantity)
 
-@item_router.post("/calculate-discount")
+@item_router.post("/calculate-discount", operation_id="calculate_discount_v1")
 async def calculate_discount(
     price: float,
     discount_percentage: float,
@@ -52,7 +52,7 @@ async def calculate_discount(
 ):
     return await item_service.calculate_discount(price, discount_percentage)
 
-@item_router.put("/{item_id}", response_model=ItemResponse)
+@item_router.put("/{item_id}", response_model=ItemResponse, operation_id="update_item_v1")
 async def update_item(
     item_id: int,
     item: ItemRequest,
@@ -61,7 +61,7 @@ async def update_item(
     item.id = item_id
     return await item_service.update(item)
 
-@item_router.delete("/{item_id}", response_model=MessageResponse)
+@item_router.delete("/{item_id}", response_model=MessageResponse, operation_id="delete_item_v1")
 async def delete_item(
     item_id: int,
     item_service: ItemService = Depends(ItemService.get_self)
