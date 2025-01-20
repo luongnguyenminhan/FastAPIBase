@@ -1,57 +1,65 @@
-from fastapi import APIRouter, Depends
-from app.controllers.api_controller_base import APIControllerBase, handle_exceptions, get_uow
-from app.schemas.user import UserCreate
-from app.schemas.item import ItemCreate
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+from app.db.base import get_db
 from app.services.services.user_service import UserService
 from app.services.services.item_service import ItemService
+from app.services.services.math_service import MathService
+from app.schemas.user import UserCreate, UserResponse
+from app.schemas.item import ItemCreate, ItemResponse
 
-api_router = APIRouter()
+router = APIRouter()
 
-class APIv1Controller(APIControllerBase):
-    """API v1 specific controller methods"""
-    
-    @handle_exceptions
-    async def get_users(self):
-        user_service = self.get_service(UserService)
-        return await user_service.get_all()
-
-    @handle_exceptions
-    async def create_user(self, user_data):
-        user_service = self.get_service(UserService)
-        return await user_service.create(user_data)
-
-    @handle_exceptions
-    async def get_items(self):
-        item_service = self.get_service(ItemService)
-        return await item_service.get_all()
-
-    @handle_exceptions
-    async def create_item(self, item_data):
-        item_service = self.get_service(ItemService)
-        return await item_service.create(item_data)
-
-@api_router.get("/users/", response_model=list)
-async def read_users(
-    controller: APIv1Controller = Depends(lambda uow: APIv1Controller(next(get_uow())))
+# User endpoints
+@router.get("/users/{user_id}", response_model=UserResponse)
+async def get_user(
+    user_id: int,
+    user_service: UserService = Depends(UserService.get_self)
 ):
-    return await controller.get_users()
+    return await user_service.get(user_id)
 
-@api_router.post("/users/", response_model=dict)
-async def create_user(
-    user: UserCreate,
-    controller: APIv1Controller = Depends(lambda uow: APIv1Controller(next(get_uow())))
+@router.get("/users/email/{email}", response_model=UserResponse)
+async def get_user_by_email(
+    email: str,
+    user_service: UserService = Depends(UserService.get_self)
 ):
-    return await controller.create_user(user)
+    return await user_service.get_by_email(email)
 
-@api_router.get("/items/", response_model=list)
-async def read_items(
-    controller: APIv1Controller = Depends(lambda uow: APIv1Controller(next(get_uow())))
+@router.get("/users/{user_id}/items", response_model=List[ItemResponse])
+async def get_user_items(
+    user_id: int,
+    user_service: UserService = Depends(UserService.get_self)
 ):
-    return await controller.get_items()
+    return await user_service.get_user_items(user_id)
 
-@api_router.post("/items/", response_model=dict)
+# Item endpoints
+@router.get("/items/{item_id}", response_model=ItemResponse)
+async def get_item(
+    item_id: int,
+    item_service: ItemService = Depends(ItemService.get_self)
+):
+    return await item_service.get(item_id)
+
+@router.post("/items/", response_model=ItemResponse)
 async def create_item(
     item: ItemCreate,
-    controller: APIv1Controller = Depends(lambda uow: APIv1Controller(next(get_uow())))
+    item_service: ItemService = Depends(ItemService.get_self)
 ):
-    return await controller.create_item(item)
+    return await item_service.create(item)
+
+@router.get("/items/category/{category}", response_model=List[ItemResponse])
+async def get_items_by_category(
+    category: str,
+    item_service: ItemService = Depends(ItemService.get_self)
+):
+    return await item_service.get_by_category(category)
+
+# Math operations endpoints
+@router.get("/math/{operation}")
+async def calculate(
+    operation: str,
+    x: float,
+    y: float,
+    math_service: MathService = Depends(MathService.get_self)
+):
+    return await math_service.calculate_operation(operation, x, y)

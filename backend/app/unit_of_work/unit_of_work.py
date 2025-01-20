@@ -39,6 +39,9 @@ class UnitOfWork:
     def rollback(self):
         if self._transaction:
             self._transaction.rollback()
+            
+    def save(self):
+        self._session.save()
 
     @contextmanager
     def transaction(self):
@@ -52,14 +55,3 @@ class UnitOfWork:
             raise
         finally:
             self._session.close()
-
-    def __enter__(self):
-        self.begin()
-        return self
-
-    def __exit__(self, exc_type, _exc_val, _exc_tb):
-        if exc_type is not None:
-            self.rollback()
-        else:
-            self.commit()
-        self._session.close()

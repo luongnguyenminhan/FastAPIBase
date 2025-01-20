@@ -25,5 +25,5 @@ async def test_db(db: Session = Depends(get_db)):
     except Exception as e:
         return {"status": "error", "message": f"Database connection failed: {str(e)}"}
 
-app.include_router(api_v1_router, prefix=API_V1_STR)
-app.include_router(api_v2_router, prefix=API_V2_STR)
+app.include_router(api_v1_router, prefix=API_V1_STR, tags=["API v1"])
+app.include_router(api_v2_router, prefix=API_V2_STR, tags=["API v2"])
