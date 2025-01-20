@@ -48,7 +48,6 @@ def create_engine_with_retry():
                 pool_timeout=30,
                 connect_args={
                     'connect_timeout': 60,
-                    'allow_local_infile': True,
                     'autocommit': False,
                 }
             )
