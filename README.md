@@ -27,6 +27,7 @@ A scalable FastAPI project template with modular architecture and API versioning
 
 ## ✨ Features
 
+<div align="center">
 <table>
 <tr>
     <td align="center">📦 <b>API Versioning</b><br>Clean and maintainable version control</td>
@@ -34,6 +35,7 @@ A scalable FastAPI project template with modular architecture and API versioning
     <td align="center">🎯 <b>Modular Design</b><br>Scalable architecture</td>
 </tr>
 </table>
+</div>
 
 ## 🏗️ Project Structure
 ```
