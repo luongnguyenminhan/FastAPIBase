@@ -4,7 +4,7 @@ from .base_service import service_method
 from fastapi import HTTPException, status
 from fastapi import Depends
 from sqlalchemy.orm import Session
-from backend.app.db.base import get_db
+from app.db.base import get_db
 
 class MathService:
     def __init__(self, uow: UnitOfWork):

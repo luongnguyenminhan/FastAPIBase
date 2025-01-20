@@ -14,65 +14,55 @@ class BaseRepository(Generic[T]):
         self.db = db
         self._dbSet = db.query(model)
 
-    async def get_by_id_async(self, id: int) -> T:
-        result = await self.db.execute(
-            select(self.model).filter_by(id=id, is_deleted=False)
-        )
-        return result.scalar_one_or_none()
+    def get_by_id(self, id: int) -> T:
+        return self._dbSet.filter_by(id=id, is_deleted=False).first()
 
-    async def get_all_async(self) -> List[T]:
-        result = await self.db.execute(
-            select(self.model).filter_by(is_deleted=False)
-        )
-        return result.scalars().all()
+    def get_all(self) -> List[T]:
+        return self._dbSet.filter_by(is_deleted=False).all()
 
-    async def add_async(self, entity: T) -> T:
+    def add(self, entity: T) -> T:
         entity.create_date = datetime.utcnow()
         self.db.add(entity)
-        await self.db.flush()
+        self.db.flush()
         return entity
 
-    async def add_range_async(self, entities: List[T]):
+    def add_range(self, entities: List[T]):
         current_time = datetime.utcnow()
         for entity in entities:
             entity.create_date = current_time
         self.db.add_all(entities)
-        await self.db.flush()
+        self.db.flush()
 
-    def update_async(self, entity: T):
+    def update(self, entity: T):
         entity.update_date = datetime.utcnow()
         self._dbSet.update(entity)
 
-    def soft_delete_async(self, entity: T):
+    def soft_delete(self, entity: T):
         entity.is_deleted = True
         self._dbSet.update(entity)
 
-    def soft_delete_range_async(self, entities: List[T]):
+    def soft_delete_range(self, entities: List[T]):
         for entity in entities:
             entity.is_deleted = True
         self._dbSet.update(entities)
 
-    def permanent_delete_async(self, entity: T):
+    def permanent_delete(self, entity: T):
         self.db.delete(entity)
 
-    def permanent_delete_list_async(self, entities: List[T]):
+    def permanent_delete_list(self, entities: List[T]):
         for entity in entities:
             self.db.delete(entity)
 
-    async def to_pagination(self, pagination_parameter: PaginationParameter) -> Pagination[T]:
-        query = select(self.model).filter_by(is_deleted=False)
+    def to_pagination(self, pagination_parameter: PaginationParameter) -> Pagination[T]:
+        query = self._dbSet.filter_by(is_deleted=False)
         
         # Get total count
-        count_result = await self.db.execute(select(func.count()).select_from(query))
-        total_count = count_result.scalar()
+        total_count = query.count()
 
         # Get paginated items
-        items_query = query.offset(
+        items = query.offset(
             (pagination_parameter.page_index - 1) * pagination_parameter.page_size
-        ).limit(pagination_parameter.page_size)
-        
-        result = await self.db.execute(items_query)
-        items = result.scalars().all()
+        ).limit(pagination_parameter.page_size).all()
 
         return Pagination(
             items=items,

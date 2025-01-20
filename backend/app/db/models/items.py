@@ -1,9 +1,8 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, func
+from sqlalchemy import Column, DateTime, Integer, String, ForeignKey, func
 from sqlalchemy.orm import relationship
-from app.db.base import Base
+from app.db.models.base_model import BaseModel
 
-
-class Item(Base):
+class Item(BaseModel):
     __tablename__ = "items"
 
     id = Column(Integer, primary_key=True, index=True)
