@@ -30,6 +30,12 @@ from app.db.base import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import Dict
+from app.api.api_v1.user_controller import user_router as api_v1_user_router
+from app.api.api_v1.item_controller import item_router as api_v1_item_router
+from app.api.api_v1.math_controller import math_router as api_v1_math_router
+from app.api.api_v2.user_controller import user_router as api_v2_user_router
+from app.api.api_v2.item_controller import item_router as api_v2_item_router
+from app.api.api_v2.math_controller import math_router as api_v2_math_router
 
 description = """
 🚀 Tài Liệu API
@@ -194,4 +200,28 @@ app.include_router(
 app.include_router(
     api_v2_router,
     prefix=API_V2_STR,
+)
+app.include_router(
+    api_v1_user_router,
+    prefix=f"{API_V1_STR}/users",
+)
+app.include_router(
+    api_v1_item_router,
+    prefix=f"{API_V1_STR}/items",
+)
+app.include_router(
+    api_v1_math_router,
+    prefix=f"{API_V1_STR}/math",
+)
+app.include_router(
+    api_v2_user_router,
+    prefix=f"{API_V2_STR}/users",
+)
+app.include_router(
+    api_v2_item_router,
+    prefix=f"{API_V2_STR}/items",
+)
+app.include_router(
+    api_v2_math_router,
+    prefix=f"{API_V2_STR}/math",
 )
