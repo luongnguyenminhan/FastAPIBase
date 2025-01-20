@@ -112,10 +112,8 @@ async def general_exception_handler(request, exc):
 app.include_router(
     api_v1_router,
     prefix=API_V1_STR,
-    tags=["API v1"]
 )
 app.include_router(
     api_v2_router,
     prefix=API_V2_STR,
-    tags=["API v2"]
 )
