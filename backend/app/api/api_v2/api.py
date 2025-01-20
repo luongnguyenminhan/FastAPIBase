@@ -1,3 +1,19 @@
+"""
+API V2 Endpoints
+
+This file defines the API V2 endpoints for the application.
+It includes advanced endpoints for user management, item management, and math operations.
+
+Dependencies:
+- FastAPI for creating API endpoints
+- Pydantic for data validation and serialization
+- Various service classes for business logic
+
+Author: Minh An
+Last Modified: 21 Jan 2024
+Version: 1.0.0
+"""
+
 from fastapi import APIRouter, Depends, Query
 from typing import List
 from app.services.services.user_service import UserService
@@ -44,7 +60,7 @@ async def calculate_item_value(
     item_service: ItemService = Depends(ItemService.get_self)
 ):
     item = await item_service.get(item_id)
-    return await item_service.calculate_total_value(item.id, item.price, quantity)
+    return await item_service.calculate_total_value(item.price, quantity)
 
 @api_router.get("/items/{item_id}/discount", response_model=ItemDiscountResponse)
 async def calculate_item_discount(
@@ -53,7 +69,7 @@ async def calculate_item_discount(
     item_service: ItemService = Depends(ItemService.get_self)
 ):
     item = await item_service.get(item_id)
-    return await item_service.calculate_discount(item.id, item.price, discount_percentage)
+    return await item_service.calculate_discount(item.price, discount_percentage)
 
 # Advanced Math operations
 @api_router.post("/math/batch")

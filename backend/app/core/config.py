@@ -1,3 +1,18 @@
+"""
+Configuration Settings
+
+This file defines the configuration settings for the application.
+It loads environment variables and sets default values for various settings.
+
+Dependencies:
+- dotenv for environment variable management
+- os for accessing environment variables
+
+Author: Minh An
+Last Modified: 21 Jan 2024
+Version: 1.0.0
+"""
+
 import os
 from dotenv import load_dotenv # type: ignore
 

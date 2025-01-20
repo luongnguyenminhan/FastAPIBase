@@ -1,3 +1,18 @@
+"""
+Database Base Configuration
+
+This file defines the base configuration for the database, including engine creation,
+session management, and connection retries.
+
+Dependencies:
+- SQLAlchemy for database operations
+- dotenv for environment variable management
+
+Author: Minh An
+Last Modified: 21 Jan 2024
+Version: 1.0.0
+"""
+
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 import time
@@ -11,6 +26,17 @@ max_retries = 5
 retry_delay = 5
 
 def create_engine_with_retry():
+    """
+    Create a SQLAlchemy engine with retry logic
+
+    Tries to connect to the database multiple times before failing.
+
+    Returns:
+        Engine: The SQLAlchemy engine
+
+    Raises:
+        Exception: If the connection fails after the maximum number of retries
+    """
     for attempt in range(max_retries):
         try:
             engine = create_engine(
@@ -43,6 +69,14 @@ engine = create_engine_with_retry()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_db():
+    """
+    Get a new database session
+
+    Yields:
+        Session: The database session
+
+    Ensures that the session is closed after use.
+    """
     db = SessionLocal()
     try:
         yield db
