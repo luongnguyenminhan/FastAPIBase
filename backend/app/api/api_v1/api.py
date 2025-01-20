@@ -59,6 +59,30 @@ async def calculate_user_metrics(
 ):
     return await user_service.calculate_user_metrics(metric_values)
 
+@api_router.post("/users/", response_model=UserResponse)
+async def create_user(
+    user: UserRequest,
+    user_service: UserService = Depends(UserService.get_self)
+):
+    return await user_service.create(user)
+
+@api_router.put("/users/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: int,
+    user: UserRequest,
+    user_service: UserService = Depends(UserService.get_self)
+):
+    user.id = user_id
+    return await user_service.update(user)
+
+@api_router.delete("/users/{user_id}", response_model=MessageResponse)
+async def delete_user(
+    user_id: int,
+    user_service: UserService = Depends(UserService.get_self)
+):
+    await user_service.delete(user_id)
+    return {"message": f"User with id {user_id} has been deleted"}
+
 # Item endpoints
 @api_router.get("/items/{item_id}", response_model=ItemResponse)
 async def get_item(
@@ -104,6 +128,23 @@ async def calculate_discount(
     item_service: ItemService = Depends(ItemService.get_self)
 ):
     return await item_service.calculate_discount(price, discount_percentage)
+
+@api_router.put("/items/{item_id}", response_model=ItemResponse)
+async def update_item(
+    item_id: int,
+    item: ItemRequest,
+    item_service: ItemService = Depends(ItemService.get_self)
+):
+    item.id = item_id
+    return await item_service.update(item)
+
+@api_router.delete("/items/{item_id}", response_model=MessageResponse)
+async def delete_item(
+    item_id: int,
+    item_service: ItemService = Depends(ItemService.get_self)
+):
+    await item_service.delete(item_id)
+    return {"message": f"Item with id {item_id} has been deleted"}
 
 # Math operations endpoints
 @api_router.post("/math/{operation}")

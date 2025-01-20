@@ -142,6 +142,51 @@ class ItemService(BaseService[Item]):
             )
         return item
 
+    @service_method
+    async def create(self, item: Item):
+        """
+        Create a new item
+
+        Args:
+            item (Item): The item to create
+
+        Returns:
+            Item: The created item
+        """
+        return self.uow.item_repository.add(item)
+
+    @service_method
+    async def update(self, item: Item):
+        """
+        Update an existing item
+
+        Args:
+            item (Item): The item to update
+
+        Returns:
+            Item: The updated item
+        """
+        return self.uow.item_repository.update(item)
+
+    @service_method
+    async def delete(self, id: int):
+        """
+        Delete an item by ID
+
+        Args:
+            id (int): The ID of the item to delete
+
+        Returns:
+            None
+        """
+        item = self.uow.item_repository.get_by_id(id)
+        if not item:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Item with id {id} not found"
+            )
+        self.uow.item_repository.soft_delete(item)
+
     @staticmethod
     def get_self(db: Session = Depends(get_db)):
         """

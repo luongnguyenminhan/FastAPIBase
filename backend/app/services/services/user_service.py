@@ -128,3 +128,48 @@ class UserService(BaseService[User]):
                 detail=f"User with id {id} not found"
             )
         return user
+
+    @service_method
+    async def create(self, user: User):
+        """
+        Create a new user
+
+        Args:
+            user (User): The user to create
+
+        Returns:
+            User: The created user
+        """
+        return self.uow.user_repository.add(user)
+
+    @service_method
+    async def update(self, user: User):
+        """
+        Update an existing user
+
+        Args:
+            user (User): The user to update
+
+        Returns:
+            User: The updated user
+        """
+        return self.uow.user_repository.update(user)
+
+    @service_method
+    async def delete(self, id: int):
+        """
+        Delete a user by ID
+
+        Args:
+            id (int): The ID of the user to delete
+
+        Returns:
+            None
+        """
+        user = self.uow.user_repository.get_by_id(id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User with id {id} not found"
+            )
+        self.uow.user_repository.soft_delete(user)
