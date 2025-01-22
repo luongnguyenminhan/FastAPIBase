@@ -29,3 +29,8 @@ DB_NAME = os.getenv("DB_NAME", "test")
 DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 SQLALCHEMY_DATABASE_URI = DATABASE_URL
+
+SMTP_SERVER="smtp.gmail.com"
+SMTP_PORT=465
+SMTP_USERNAME="lilylanestore.flower@gmail.com"
+SMTP_PASSWORD="oobi lnak zgml ppgz"
