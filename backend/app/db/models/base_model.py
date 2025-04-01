@@ -13,11 +13,12 @@ Last Modified: 21 Jan 2024
 Version: 1.0.0
 """
 
-from sqlalchemy import Column, Integer, DateTime, Boolean
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
+
 from pydantic import ConfigDict
 from pytz import timezone
+from sqlalchemy import Column, Integer, DateTime, Boolean
+from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 

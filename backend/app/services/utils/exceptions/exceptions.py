@@ -15,10 +15,11 @@ Last Modified: 23 Jun 2024
 Version: 1.0.0
 """
 
+from typing import Optional, Dict, Any
+
+from app.schemas.business_model.response_base import ErrorResponseModel, ResponseStatus
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
-from typing import Optional, Dict, Any, Type
-from app.schemas.business_model.response_base import ErrorResponseModel, ResponseStatus
 
 
 class APIException(HTTPException):
@@ -26,12 +27,13 @@ class APIException(HTTPException):
     Base API Exception class that extends FastAPI's HTTPException
     with additional fields for standardized error responses
     """
+
     def __init__(
-        self,
-        status_code: int = 500,
-        error_code: str = "INTERNAL_SERVER_ERROR",
-        message: str = "Internal server error",
-        headers: Optional[Dict[str, Any]] = None,
+            self,
+            status_code: int = 500,
+            error_code: str = "INTERNAL_SERVER_ERROR",
+            message: str = "Internal server error",
+            headers: Optional[Dict[str, Any]] = None,
     ):
         """
         Initialize APIException
@@ -49,66 +51,72 @@ class APIException(HTTPException):
 # Common exception classes
 class BadRequestException(APIException):
     """Exception for invalid request data"""
+
     def __init__(
-        self, 
-        error_code: str = "BAD_REQUEST", 
-        message: str = "Invalid request data",
-        headers: Optional[Dict[str, Any]] = None
+            self,
+            error_code: str = "BAD_REQUEST",
+            message: str = "Invalid request data",
+            headers: Optional[Dict[str, Any]] = None
     ):
         super().__init__(status_code=400, error_code=error_code, message=message, headers=headers)
 
 
 class UnauthorizedException(APIException):
     """Exception for authentication failures"""
+
     def __init__(
-        self, 
-        error_code: str = "UNAUTHORIZED", 
-        message: str = "Authentication required",
-        headers: Optional[Dict[str, Any]] = None
+            self,
+            error_code: str = "UNAUTHORIZED",
+            message: str = "Authentication required",
+            headers: Optional[Dict[str, Any]] = None
     ):
         super().__init__(status_code=401, error_code=error_code, message=message, headers=headers)
 
 
 class ForbiddenException(APIException):
     """Exception for authorization failures"""
+
     def __init__(
-        self, 
-        error_code: str = "FORBIDDEN", 
-        message: str = "Access forbidden",
-        headers: Optional[Dict[str, Any]] = None
+            self,
+            error_code: str = "FORBIDDEN",
+            message: str = "Access forbidden",
+            headers: Optional[Dict[str, Any]] = None
     ):
         super().__init__(status_code=403, error_code=error_code, message=message, headers=headers)
 
 
 class NotFoundException(APIException):
     """Exception for resource not found"""
+
     def __init__(
-        self, 
-        error_code: str = "NOT_FOUND", 
-        message: str = "Resource not found",
-        headers: Optional[Dict[str, Any]] = None
+            self,
+            error_code: str = "NOT_FOUND",
+            message: str = "Resource not found",
+            headers: Optional[Dict[str, Any]] = None
     ):
         super().__init__(status_code=404, error_code=error_code, message=message, headers=headers)
 
 
 class ConflictException(APIException):
     """Exception for resource conflicts"""
+
     def __init__(
-        self, 
-        error_code: str = "CONFLICT", 
-        message: str = "Resource conflict",
-        headers: Optional[Dict[str, Any]] = None
+            self,
+            error_code: str = "CONFLICT",
+            message: str = "Resource conflict",
+            headers: Optional[Dict[str, Any]] = None
     ):
         super().__init__(status_code=409, error_code=error_code, message=message, headers=headers)
 
 
 class InternalServerException(APIException):
     """Exception for internal server errors"""
+
     def __init__(
-        self, 
-        error_code: str = "INTERNAL_SERVER_ERROR", 
-        message: str = "Internal server error",
-        headers: Optional[Dict[str, Any]] = None
+            self,
+            error_code: str = "INTERNAL_SERVER_ERROR",
+            message: str = "Internal server error",
+            headers: Optional[Dict[str, Any]] = None
     ):
         super().__init__(status_code=500, error_code=error_code, message=message, headers=headers)
 

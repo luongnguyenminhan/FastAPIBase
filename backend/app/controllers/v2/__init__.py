@@ -9,10 +9,10 @@ Last Modified: 23 Jun 2024
 Version: 1.1.0
 """
 
-from fastapi import APIRouter
-from app.controllers.v2.user_controller import UserController
 from app.controllers.v2.item_controller import ItemController
 from app.controllers.v2.math_controller import MathController
+from app.controllers.v2.user_controller import UserController
+from fastapi import APIRouter
 
 # Create main API router for v2
 api_router = APIRouter()

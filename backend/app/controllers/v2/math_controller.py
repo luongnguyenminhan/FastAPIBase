@@ -10,14 +10,17 @@ Last Modified: 23 Jun 2024
 Version: 2.0.0
 """
 
-from fastapi import APIRouter, Depends, Query
 from typing import List, Dict, Any, Optional
-from app.services.services.math_service import MathService
+
+from app.db.base import get_db
+from app.schemas.business_model.response_base import BaseResponseModel, SuccessResponseModel
 from app.schemas.view_model.response import (
     OperationResultViewModel,
     EnhancedOperationResultViewModel
 )
-from app.schemas.business_model.response_base import BaseResponseModel, SuccessResponseModel
+from app.services.services.math_service import MathService
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
 
 
 class MathController:
@@ -25,11 +28,19 @@ class MathController:
     Controller handling math-related endpoints including various operations
     like add, subtract, multiply, etc. with enhanced features.
     """
-    
-    def __init__(self, router: APIRouter):
+
+    def __init__(self, router: APIRouter, db: Session = Depends(get_db)):
+        """
+        Initialize the controller with router and database session.
+        
+        Args:
+            router: FastAPI router instance
+            db: Database session
+        """
         self.router = router
+        self.math_service = MathService.get_self(db)
         self._register_routes()
-    
+
     def _register_routes(self) -> None:
         """Register all math routes with the router."""
         self.router.add_api_route(
@@ -41,7 +52,7 @@ class MathController:
             description="Perform a mathematical operation on two numbers with step-by-step details",
             operation_id="calculate_operation_v2"
         )
-        
+
         self.router.add_api_route(
             "/operations",
             self.get_available_operations,
@@ -51,7 +62,7 @@ class MathController:
             description="Get a list of available mathematical operations with descriptions",
             operation_id="get_available_operations_v2"
         )
-        
+
         self.router.add_api_route(
             "/batch",
             self.calculate_multiple_operations,
@@ -61,7 +72,7 @@ class MathController:
             description="Perform multiple mathematical operations in a single request with summary statistics",
             operation_id="calculate_multiple_operations_v2"
         )
-        
+
         self.router.add_api_route(
             "/formula",
             self.calculate_formula,
@@ -71,15 +82,14 @@ class MathController:
             description="Calculate result of a sequence of operations",
             operation_id="calculate_formula_v2"
         )
-    
+
     async def calculate_operation(
-        self,
-        operation: str,
-        x: float,
-        y: float,
-        round_to: Optional[int] = Query(None, ge=0, le=10),
-        show_details: bool = Query(True),
-        math_service: MathService = Depends(MathService.get_self)
+            self,
+            operation: str,
+            x: float,
+            y: float,
+            round_to: Optional[int] = Query(None, ge=0, le=10),
+            show_details: bool = Query(True)
     ) -> SuccessResponseModel:
         """
         Calculate a mathematical operation with enhanced details.
@@ -90,17 +100,16 @@ class MathController:
             y: The second operand
             round_to: Number of decimal places to round to (optional)
             show_details: Whether to show step-by-step details
-            math_service: The math service for business logic
             
         Returns:
             SuccessResponseModel: The calculation result with details
         """
-        result = await math_service.calculate_operation(operation, x, y)
-        
+        result = await self.math_service.calculate_operation(operation, x, y)
+
         # Round result if specified
         if round_to is not None:
             result = round(result, round_to)
-        
+
         # Create step-by-step explanation based on operation
         steps = []
         if show_details:
@@ -114,7 +123,7 @@ class MathController:
                 steps = [f"Divide {x} by {y}", f"Result: {result}"]
             elif operation == "power":
                 steps = [f"Raise {x} to the power of {y}", f"Result: {result}"]
-        
+
         # Create enhanced response
         enhanced_result = EnhancedOperationResultViewModel(
             operation=operation,
@@ -123,7 +132,7 @@ class MathController:
             result=result,
             steps=steps if show_details else None
         )
-        
+
         return SuccessResponseModel(
             message=f"Operation '{operation}' calculated successfully",
             data=enhanced_result,
@@ -133,27 +142,25 @@ class MathController:
                 "show_details": show_details
             }
         )
-    
+
     async def get_available_operations(
-        self,
-        with_examples: bool = Query(True),
-        math_service: MathService = Depends(MathService.get_self)
+            self,
+            with_examples: bool = Query(True)
     ) -> SuccessResponseModel:
         """
         Get a list of available mathematical operations with descriptions.
         
         Args:
             with_examples: Whether to include example usage
-            math_service: The math service for business logic
             
         Returns:
             SuccessResponseModel: The list of available operations with descriptions
         """
-        operations = await math_service.get_available_operations()
-        
+        operations = await self.math_service.get_available_operations()
+
         # Create descriptions for each operation
         operation_info = {}
-        
+
         for op in operations:
             if op == "add":
                 description = "Addition operation: adds two numbers together"
@@ -173,12 +180,12 @@ class MathController:
             else:
                 description = f"Unknown operation: {op}"
                 example = None
-            
+
             operation_info[op] = {
                 "description": description,
                 "example": example
             }
-        
+
         return SuccessResponseModel(
             message="Available operations retrieved successfully",
             data=operation_info,
@@ -187,12 +194,11 @@ class MathController:
                 "count": len(operations)
             }
         )
-    
+
     async def calculate_multiple_operations(
-        self,
-        operations: List[Dict[str, Any]],
-        include_individual_results: bool = Query(True),
-        math_service: MathService = Depends(MathService.get_self)
+            self,
+            operations: List[Dict[str, Any]],
+            include_individual_results: bool = Query(True)
     ) -> SuccessResponseModel:
         """
         Calculate multiple operations in a batch with summary statistics.
@@ -200,13 +206,12 @@ class MathController:
         Args:
             operations: List of operations with operation name and operands
             include_individual_results: Whether to include individual operation results
-            math_service: The math service for business logic
             
         Returns:
             SuccessResponseModel: The results with summary statistics
         """
-        results = await math_service.calculate_multiple_operations(operations)
-        
+        results = await self.math_service.calculate_multiple_operations(operations)
+
         # Create a list of result view models if requested
         individual_results = None
         if include_individual_results:
@@ -220,7 +225,7 @@ class MathController:
                         result=results[i]
                     )
                 )
-        
+
         # Calculate summary statistics
         summary = {
             "count": len(results),
@@ -229,7 +234,7 @@ class MathController:
             "min": min(results) if results else None,
             "max": max(results) if results else None
         }
-            
+
         return SuccessResponseModel(
             message=f"Successfully calculated {len(results)} operations",
             data={
@@ -241,18 +246,16 @@ class MathController:
                 "include_individual_results": include_individual_results
             }
         )
-    
+
     async def calculate_formula(
-        self,
-        formula: List[Dict[str, Any]],
-        math_service: MathService = Depends(MathService.get_self)
+            self,
+            formula: List[Dict[str, Any]]
     ) -> SuccessResponseModel:
         """
         Calculate a sequence of operations in order (formula).
         
         Args:
             formula: List of operations to execute in sequence
-            math_service: The math service for business logic
             
         Returns:
             SuccessResponseModel: The final result with execution trace
@@ -260,12 +263,12 @@ class MathController:
         # Process operations in sequence
         result = 0
         execution_trace = []
-        
+
         try:
             # Execute first operation to get initial result
             if len(formula) > 0:
                 first_op = formula[0]
-                result = await math_service.calculate_operation(
+                result = await self.math_service.calculate_operation(
                     first_op.get('operation', 'add'),
                     first_op.get('x', 0.0),
                     first_op.get('y', 0.0)
@@ -277,15 +280,15 @@ class MathController:
                     "y": first_op.get('y', 0.0),
                     "result": result
                 })
-            
+
             # Execute remaining operations using result of previous step
             for i, op_data in enumerate(formula[1:], start=2):
                 operation = op_data.get('operation', 'add')
                 y = op_data.get('y', 0.0)
-                
+
                 # Use result of previous step as x
-                result = await math_service.calculate_operation(operation, result, y)
-                
+                result = await self.math_service.calculate_operation(operation, result, y)
+
                 execution_trace.append({
                     "step": i,
                     "operation": operation,
@@ -293,7 +296,7 @@ class MathController:
                     "y": y,
                     "result": result
                 })
-                
+
             return SuccessResponseModel(
                 message="Formula calculated successfully",
                 data=result,

@@ -15,23 +15,26 @@ Last Modified: 23 Jun 2024
 Version: 1.0.0
 """
 
-from typing import Dict, Callable, Any, List, Optional, Dict, Union
 import logging
-from app.unit_of_work.unit_of_work import UnitOfWork
-from app.services.utils.example_core import MathOperations
-from .base_service import service_method, BaseService
-from fastapi import Depends
-from sqlalchemy.orm import Session
+from typing import Callable, Any, List, Dict
+
 from app.db.base import get_db
+from app.services.service_interface.i_math_service import IMathService
+from app.services.utils.example_core import MathOperations
 from app.services.utils.exceptions.exceptions import (
     BadRequestException,
     InternalServerException
 )
+from app.unit_of_work.unit_of_work import UnitOfWork
+from fastapi import Depends
+from sqlalchemy.orm import Session
+
+from .base_service import service_method, BaseService
 
 logger = logging.getLogger(__name__)
 
 
-class MathService(BaseService[Any]):
+class MathService(BaseService[Any], IMathService):
     """
     Service class for performing mathematical operations
 
@@ -88,14 +91,14 @@ class MathService(BaseService[Any]):
             BadRequestException: If the operation is not supported or if there's a calculation error
         """
         logger.debug(f"Calculating operation: {operation} with x={x}, y={y}")
-        
+
         if operation not in self.operations:
             logger.warning(f"Unsupported operation requested: {operation}")
             raise BadRequestException(
                 error_code="UNSUPPORTED_OPERATION",
                 message=f"Unsupported operation: {operation}"
             )
-        
+
         try:
             result: float = self.operations[operation](x, y)
             logger.debug(f"Operation result: {result}")
@@ -112,7 +115,7 @@ class MathService(BaseService[Any]):
                 error_code="CALCULATION_ERROR",
                 message=f"Error performing operation: {str(e)}"
             )
-    
+
     @service_method
     async def get_available_operations(self) -> List[str]:
         """
@@ -123,7 +126,7 @@ class MathService(BaseService[Any]):
         """
         logger.debug("Getting available operations")
         return list(self.operations.keys())
-    
+
     @service_method
     async def calculate_multiple_operations(self, operations: List[Dict[str, Any]]) -> List[float]:
         """
@@ -139,16 +142,16 @@ class MathService(BaseService[Any]):
             BadRequestException: If any operation is not supported or if the input is invalid
         """
         logger.debug(f"Calculating multiple operations: {len(operations)} operations")
-        
+
         if not operations:
             logger.warning("Empty operations list provided")
             raise BadRequestException(
                 error_code="EMPTY_OPERATIONS_LIST",
                 message="Cannot process empty operations list"
             )
-            
+
         results: List[float] = []
-        
+
         for i, op_data in enumerate(operations):
             if not isinstance(op_data, dict):
                 logger.error(f"Invalid operation data format at index {i}")
@@ -156,7 +159,7 @@ class MathService(BaseService[Any]):
                     error_code="INVALID_OPERATION_FORMAT",
                     message=f"Operation at index {i} has invalid format"
                 )
-                
+
             operation: str = op_data.get('operation', '')
             if not operation:
                 logger.error(f"Missing operation name at index {i}")
@@ -164,11 +167,11 @@ class MathService(BaseService[Any]):
                     error_code="MISSING_OPERATION_NAME",
                     message=f"Operation name is missing at index {i}"
                 )
-                
+
             x: float = op_data.get('x', 0.0)
             y: float = op_data.get('y', 0.0)
-            
+
             result = await self.calculate_operation(operation, x, y)
             results.append(result)
-            
+
         return results

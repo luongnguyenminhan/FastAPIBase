@@ -13,16 +13,19 @@ Last Modified: 21 Jan 2024
 Version: 1.0.0
 """
 
-from .base_repository import BaseRepository
-from app.db.models import User
-from sqlalchemy.orm import Session
-from typing import List, Optional
 import logging
+from typing import List, Optional, Type
+
+from app.db.models import User
+from app.repositories.repository_interface.i_user_repository import IUserRepository
+from sqlalchemy.orm import Session
+
+from .base_repository import BaseRepository
 
 logger = logging.getLogger(__name__)
 
 
-class UserRepository(BaseRepository[User]):
+class UserRepository(BaseRepository[User], IUserRepository):
     """
     Repository class for managing users
 
@@ -39,6 +42,11 @@ class UserRepository(BaseRepository[User]):
         """
         super().__init__(User, db)
         logger.info("UserRepository initialized")
+
+    @property
+    def model(self) -> Type[User]:
+        """Get the model class"""
+        return User
 
     def get_by_email(self, email: str) -> Optional[User]:
         """

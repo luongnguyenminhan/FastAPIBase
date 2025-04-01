@@ -15,26 +15,29 @@ Last Modified: 23 Jun 2024
 Version: 1.0.0
 """
 
-from typing import List, Dict, Optional, Any, Union
 import logging
-from .base_service import BaseService, service_method, ServiceResponse
+from typing import List, Dict, Optional, Union
+
+from app.db.base import get_db
 from app.db.models import User
 from app.db.models.items import Item
 from app.repositories.user_repository import UserRepository
-from app.unit_of_work.unit_of_work import UnitOfWork
-from fastapi import Depends
-from sqlalchemy.orm import Session
-from app.db.base import get_db
+from app.services.service_interface.i_user_service import IUserService
 from app.services.utils.exceptions.exceptions import (
-    NotFoundException, 
+    NotFoundException,
     BadRequestException,
     InternalServerException
 )
+from app.unit_of_work.unit_of_work import UnitOfWork
+from fastapi import Depends
+from sqlalchemy.orm import Session
+
+from .base_service import BaseService, service_method, ServiceResponse
 
 logger = logging.getLogger(__name__)
 
 
-class UserService(BaseService[User]):
+class UserService(BaseService[User], IUserService):
     """
     Service class for managing users
 
@@ -143,7 +146,7 @@ class UserService(BaseService[User]):
                 error_code="EMPTY_METRICS",
                 message="Cannot calculate metrics with empty values list"
             )
-        
+
         try:
             total: float = sum(metric_values)
             average: float = total / len(metric_values)
@@ -200,7 +203,7 @@ class UserService(BaseService[User]):
                     error_code="EMAIL_ALREADY_EXISTS",
                     message=f"User with email {user.email} already exists"
                 )
-                
+
             with self.uow:
                 created_user: User = self.uow.user_repository.add(user)
                 self.uow.commit()
@@ -237,7 +240,7 @@ class UserService(BaseService[User]):
                         error_code="USER_NOT_FOUND",
                         message=f"User with id {user.id} not found"
                     )
-                
+
                 self.uow.user_repository.update(user)
                 self.uow.commit()
             logger.info(f"Updated user with ID: {user.id}")
@@ -276,7 +279,7 @@ class UserService(BaseService[User]):
                         error_code="USER_NOT_FOUND",
                         message=f"User with id {id} not found"
                     )
-                
+
                 self.uow.user_repository.soft_delete(user)
                 self.uow.commit()
             logger.info(f"Deleted user with ID: {id}")

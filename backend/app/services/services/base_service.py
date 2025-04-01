@@ -22,32 +22,26 @@ Last Modified: 23 Jun 2024
 Version: 1.0.0
 """
 
-from abc import abstractmethod
-from typing import Generic, TypeVar, Callable, Type, Any, Optional, TypedDict, cast
-from functools import wraps
 import logging
-from fastapi import Depends, status
-from sqlalchemy.orm import Session
-from app.unit_of_work.unit_of_work import UnitOfWork
-from app.repositories.base_repository import BaseRepository
+from abc import abstractmethod
+from functools import wraps
+from typing import Generic, TypeVar, Callable, Type, Any, Optional
+
 from app.db.base import get_db
+from app.repositories.base_repository import BaseRepository
+from app.services.service_interface.i_base_service import IBaseService, ServiceResponse
 from app.services.utils.exceptions.exceptions import (
-    APIException, 
-    InternalServerException, 
+    APIException,
+    InternalServerException,
     NotFoundException,
     BadRequestException
 )
+from app.unit_of_work.unit_of_work import UnitOfWork
+from fastapi import Depends
+from sqlalchemy.orm import Session
 
 T = TypeVar('T')
 logger = logging.getLogger(__name__)
-
-
-class ServiceResponse(TypedDict, total=False):
-    """Type for standardized service responses"""
-    success: bool
-    data: Any
-    message: Optional[str]
-    error: Optional[str]
 
 
 def service_method(func: Callable) -> Callable:
@@ -60,6 +54,7 @@ def service_method(func: Callable) -> Callable:
     Returns:
         Callable: The wrapped service method with exception handling
     """
+
     @wraps(func)
     async def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
         try:
@@ -78,10 +73,11 @@ def service_method(func: Callable) -> Callable:
                 error_code="INTERNAL_SERVER_ERROR",
                 message=str(e)
             )
+
     return wrapper
 
 
-class BaseService(Generic[T]):
+class BaseService(Generic[T], IBaseService[T]):
     """
     Base service class for managing repositories and transactions
 
@@ -117,11 +113,11 @@ class BaseService(Generic[T]):
             NotImplementedError: If the method is not implemented by subclasses
         """
         raise NotImplementedError("Subclasses must implement this method")
-    
-    def create_response(self, 
-                        success: bool = True, 
-                        data: Any = None, 
-                        message: Optional[str] = None, 
+
+    def create_response(self,
+                        success: bool = True,
+                        data: Any = None,
+                        message: Optional[str] = None,
                         error: Optional[str] = None) -> ServiceResponse:
         """
         Create a standardized service response
@@ -136,14 +132,14 @@ class BaseService(Generic[T]):
             ServiceResponse: A standardized service response
         """
         response: ServiceResponse = {"success": success}
-        
+
         if data is not None:
             response["data"] = data
-        
+
         if message is not None:
             response["message"] = message
-            
+
         if error is not None:
             response["error"] = error
-            
+
         return response

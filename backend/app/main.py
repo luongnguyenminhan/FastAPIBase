@@ -20,20 +20,15 @@ Last Modified: 23 Jun 2024
 Version: 2.0.0
 """
 
-from fastapi import FastAPI, Depends, Request, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from app.core.config import settings
 from app.controllers.v1 import api_router as api_v1_router
 from app.controllers.v2 import api_router as api_v2_router
+from app.core.config import settings
 from app.db.base import get_db
-from sqlalchemy.orm import Session
-from sqlalchemy import text
-from typing import Dict
-from app.schemas.business_model.response_base import ErrorResponseModel, BaseResponseModel, ResponseStatus, SuccessResponseModel
+from app.schemas.business_model.response_base import ErrorResponseModel, BaseResponseModel, ResponseStatus, \
+    SuccessResponseModel
 from app.services.utils.exceptions.exceptions import (
-    register_exception_handlers, 
-    APIException, 
+    register_exception_handlers,
+    APIException,
     BadRequestException,
     UnauthorizedException,
     ForbiddenException,
@@ -41,6 +36,10 @@ from app.services.utils.exceptions.exceptions import (
     ConflictException,
     InternalServerException
 )
+from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 description = """
 🚀 Tài Liệu API
@@ -79,6 +78,7 @@ app.add_middleware(
 # Đăng ký các exception handlers từ app.services.utils.exceptions.exceptions
 register_exception_handlers(app)
 
+
 # Health check endpoints
 @app.get("/health", tags=["Health"], summary="Get application health status")
 async def health_check() -> SuccessResponseModel:
@@ -93,6 +93,7 @@ async def health_check() -> SuccessResponseModel:
         data={"status": "healthy"},
         metadata={"version": "2.0.0"}
     )
+
 
 @app.get("/test-db", tags=["Health"], summary="Test database connection")
 async def test_db_connection(db: Session = Depends(get_db)) -> SuccessResponseModel:
@@ -120,6 +121,7 @@ async def test_db_connection(db: Session = Depends(get_db)) -> SuccessResponseMo
             error_code="DATABASE_CONNECTION_ERROR",
             message=f"Database connection failed: {str(e)}"
         )
+
 
 # Error test endpoints (for testing exception handling)
 @app.get("/test-error/{error_type}", tags=["Testing"], summary="Test error responses")
@@ -156,6 +158,7 @@ async def test_error(error_type: str) -> SuccessResponseModel:
             message="No error triggered",
             data={"error_type": error_type}
         )
+
 
 # Bao gồm các controller routers
 app.include_router(

@@ -13,11 +13,12 @@ Last Modified: 21 Jan 2024
 Version: 1.0.0
 """
 
+import os
+import time
+
+from dotenv import load_dotenv  # type: ignore
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
-import time
-import os
-from dotenv import load_dotenv  # type: ignore
 
 load_dotenv()
 

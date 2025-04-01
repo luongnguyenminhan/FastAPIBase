@@ -25,3 +25,9 @@ alwaysApply: true
 
 - Must follow OOP, DRY rule do not create any standalone function in python.
 - In API controller, write proper response and request model and model validation using pydantic model.
+
+- always use interface before using class in python.
+- in interface, always use abstractmethod decorator.
+- in interface, always use @property decorator for getter and setter.
+- in interface, always use @abstractmethod decorator for method.
+- in interface do not need to use __init__ method and docstring.

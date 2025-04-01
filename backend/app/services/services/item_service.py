@@ -16,27 +16,30 @@ Last Modified: 23 Jun 2024
 Version: 1.0.0
 """
 
-from fastapi import Depends, status
-from typing import List, Optional, Dict, Union, Any
 import logging
-from .base_service import BaseService, service_method
-from app.db.models.items import Item
-from app.db.models import User
-from app.repositories.item_repository import ItemRepository
-from app.services.utils.example_core import MathOperations
-from app.unit_of_work.unit_of_work import UnitOfWork
-from sqlalchemy.orm import Session
+from typing import List, Optional
+
 from app.db.base import get_db
+from app.db.models import User
+from app.db.models.items import Item
+from app.repositories.item_repository import ItemRepository
+from app.services.service_interface.i_item_service import IItemService
+from app.services.utils.example_core import MathOperations
 from app.services.utils.exceptions.exceptions import (
-    NotFoundException, 
+    NotFoundException,
     BadRequestException,
     InternalServerException
 )
+from app.unit_of_work.unit_of_work import UnitOfWork
+from fastapi import Depends
+from sqlalchemy.orm import Session
+
+from .base_service import BaseService, service_method
 
 logger = logging.getLogger(__name__)
 
 
-class ItemService(BaseService[Item]):
+class ItemService(BaseService[Item], IItemService):
     """
     Service class for managing items
 
@@ -164,7 +167,7 @@ class ItemService(BaseService[Item]):
                 error_code="INVALID_DISCOUNT_PERCENTAGE",
                 message="Discount percentage must be between 0 and 100"
             )
-        
+
         try:
             discount_rate: float = MathOperations.divide(discount_percentage, 100)
             discount_amount: float = MathOperations.multiply(price, discount_rate)
@@ -247,7 +250,7 @@ class ItemService(BaseService[Item]):
                         error_code="ITEM_NOT_FOUND",
                         message=f"Item with id {item.id} not found"
                     )
-                
+
                 self.uow.item_repository.update(item)
                 self.uow.commit()
             logger.info(f"Updated item with ID: {item.id}")
@@ -286,7 +289,7 @@ class ItemService(BaseService[Item]):
                         error_code="ITEM_NOT_FOUND",
                         message=f"Item with id {id} not found"
                     )
-                
+
                 self.uow.item_repository.soft_delete(item)
                 self.uow.commit()
             logger.info(f"Deleted item with ID: {id}")

@@ -8,14 +8,15 @@ Dependencies:
 - Pydantic for data validation and serialization
 
 Author: Minh An
-Last Modified: 21 Jan 2024
-Version: 1.0.0
+Last Modified: 23 Jun 2024
+Version: 1.0.1
 """
 
-from pydantic import BaseModel
-from typing import List, Optional
 from decimal import Decimal
+from typing import List, Optional, Dict, Any, Set
+
 from app.schemas.business_model.base import UserBusinessModel, ItemBusinessModel
+from pydantic import BaseModel
 
 
 class MessageResponseViewModel(BaseModel):
@@ -104,3 +105,55 @@ class ItemDiscountResponseViewModel(BaseModel):
     original_price: Decimal
     discount_percentage: float
     final_price: Decimal
+
+
+class OperationResultViewModel(BaseModel):
+    """
+    View model for standard operation results
+
+    Attributes:
+        success (bool): Indicates if the operation was successful
+        message (str): A descriptive message about the operation
+        data (Optional[Dict[str, Any]]): Optional data returned from the operation
+    """
+    success: bool
+    message: str
+    data: Optional[Dict[str, Any]] = None
+
+
+class EnhancedOperationResultViewModel(OperationResultViewModel):
+    """
+    Extended view model for operation results with additional metadata
+
+    Attributes:
+        success (bool): Indicates if the operation was successful
+        message (str): A descriptive message about the operation
+        data (Optional[Dict[str, Any]]): Optional data returned from the operation
+        metadata (Dict[str, Any]): Additional metadata about the operation
+        operation_id (Optional[str]): Unique identifier for the operation
+    """
+    metadata: Dict[str, Any] = {}
+    operation_id: Optional[str] = None
+
+
+class EnhancedUserResponseViewModel(UserResponseViewModel):
+    """
+    Enhanced view model for detailed user responses
+    
+    Extends UserResponseViewModel with additional user details and metadata
+    
+    Attributes:
+        items (List[ItemResponseViewModel]): List of items owned by the user
+        roles (Set[str]): User roles/permissions
+        is_active (bool): User account status
+        last_login (Optional[str]): Timestamp of last login
+        metadata (Dict[str, Any]): Additional user metadata
+    """
+    items: List[ItemResponseViewModel] = []
+    roles: Set[str] = set()
+    is_active: bool = True
+    last_login: Optional[str] = None
+    metadata: Dict[str, Any] = {}
+
+    class Config:
+        from_attributes = True

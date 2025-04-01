@@ -13,16 +13,19 @@ Last Modified: 21 Jan 2024
 Version: 1.0.0
 """
 
-from .base_repository import BaseRepository
-from app.db.models.items import Item
-from sqlalchemy.orm import Session
-from typing import List, Optional
 import logging
+from typing import List, Optional, Type
+
+from app.db.models.items import Item
+from app.repositories.repository_interface.i_item_repository import IItemRepository
+from sqlalchemy.orm import Session
+
+from .base_repository import BaseRepository
 
 logger = logging.getLogger(__name__)
 
 
-class ItemRepository(BaseRepository[Item]):
+class ItemRepository(BaseRepository[Item], IItemRepository):
     """
     Repository class for managing items
 
@@ -39,6 +42,11 @@ class ItemRepository(BaseRepository[Item]):
         """
         super().__init__(Item, db)
         logger.info("ItemRepository initialized")
+
+    @property
+    def model(self) -> Type[Item]:
+        """Get the model class"""
+        return Item
 
     def get_by_owner(self, owner_id: int) -> List[Item]:
         """

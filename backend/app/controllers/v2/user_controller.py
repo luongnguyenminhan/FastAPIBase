@@ -10,17 +10,20 @@ Last Modified: 23 Jun 2024
 Version: 2.0.0
 """
 
-from fastapi import APIRouter, Depends, Query
 from typing import List, Dict, Optional
-from app.services.services.user_service import UserService
+
+from app.db.base import get_db
+from app.schemas.business_model.response_base import BaseResponseModel, SuccessResponseModel
+from app.schemas.view_model.request import UserRequestViewModel
 from app.schemas.view_model.response import (
     ItemResponseViewModel,
     UserResponseViewModel,
     MessageResponseViewModel,
     EnhancedUserResponseViewModel
 )
-from app.schemas.view_model.request import UserRequestViewModel
-from app.schemas.business_model.response_base import BaseResponseModel, SuccessResponseModel
+from app.services.services.user_service import UserService
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
 
 
 class UserController:
@@ -28,11 +31,19 @@ class UserController:
     Controller handling user-related endpoints including user retrieval,
     creation, updating, and deletion with enhanced features.
     """
-    
-    def __init__(self, router: APIRouter):
+
+    def __init__(self, router: APIRouter, db: Session = Depends(get_db)):
+        """
+        Initialize the controller with router and database session.
+        
+        Args:
+            router: FastAPI router instance
+            db: Database session
+        """
         self.router = router
+        self.user_service = UserService.get_self(db)
         self._register_routes()
-    
+
     def _register_routes(self) -> None:
         """Register all user routes with the router."""
         self.router.add_api_route(
@@ -44,7 +55,7 @@ class UserController:
             description="Retrieve user details by user ID with additional information",
             operation_id="get_user_v2"
         )
-        
+
         self.router.add_api_route(
             "/email/{email}",
             self.get_user_by_email,
@@ -54,7 +65,7 @@ class UserController:
             description="Retrieve user details by email address with additional information",
             operation_id="get_user_by_email_v2"
         )
-        
+
         # Enhanced with pagination
         self.router.add_api_route(
             "/{user_id}/items",
@@ -65,7 +76,7 @@ class UserController:
             description="Retrieve all items owned by a user with pagination",
             operation_id="get_user_items_v2"
         )
-        
+
         # Enhanced with filtering
         self.router.add_api_route(
             "/active",
@@ -76,7 +87,7 @@ class UserController:
             description="Retrieve active users with filtering options",
             operation_id="get_active_users_v2"
         )
-        
+
         # Enhanced with more detailed response
         self.router.add_api_route(
             "/metrics",
@@ -87,7 +98,7 @@ class UserController:
             description="Calculate metrics based on provided values with detailed breakdown",
             operation_id="calculate_user_metrics_v2"
         )
-        
+
         self.router.add_api_route(
             "/",
             self.create_user,
@@ -97,7 +108,7 @@ class UserController:
             description="Create a new user with enhanced response",
             operation_id="create_user_v2"
         )
-        
+
         self.router.add_api_route(
             "/{user_id}",
             self.update_user,
@@ -107,7 +118,7 @@ class UserController:
             description="Update an existing user with enhanced response",
             operation_id="update_user_v2"
         )
-        
+
         self.router.add_api_route(
             "/{user_id}",
             self.delete_user,
@@ -117,12 +128,11 @@ class UserController:
             description="Delete a user by ID",
             operation_id="delete_user_v2"
         )
-    
+
     async def get_user(
-        self,
-        user_id: int,
-        include_items: bool = Query(False),
-        user_service: UserService = Depends(UserService.get_self)
+            self,
+            user_id: int,
+            include_items: bool = Query(False)
     ) -> SuccessResponseModel:
         """
         Get a user by ID with enhanced options.
@@ -130,25 +140,24 @@ class UserController:
         Args:
             user_id: The ID of the user to retrieve
             include_items: Whether to include the user's items
-            user_service: The user service for business logic
             
         Returns:
             SuccessResponseModel: The retrieved user with additional information
         """
-        user = await user_service.get(user_id)
-        
+        user = await self.user_service.get(user_id)
+
         # Include items if requested
         items = None
         if include_items:
-            items = await user_service.get_user_items(user_id)
-        
+            items = await self.user_service.get_user_items(user_id)
+
         # Create enhanced response with additional information
         enhanced_user = EnhancedUserResponseViewModel(
             **user.dict(),
             item_count=len(items) if items else 0,
             items=items if items else None
         )
-        
+
         return SuccessResponseModel(
             message="User retrieved successfully",
             data=enhanced_user,
@@ -157,12 +166,11 @@ class UserController:
                 "has_items": items is not None and len(items) > 0
             }
         )
-    
+
     async def get_user_by_email(
-        self,
-        email: str,
-        include_items: bool = Query(False),
-        user_service: UserService = Depends(UserService.get_self)
+            self,
+            email: str,
+            include_items: bool = Query(False)
     ) -> SuccessResponseModel:
         """
         Get a user by email with enhanced options.
@@ -170,25 +178,24 @@ class UserController:
         Args:
             email: The email of the user to retrieve
             include_items: Whether to include the user's items
-            user_service: The user service for business logic
             
         Returns:
             SuccessResponseModel: The retrieved user with additional information
         """
-        user = await user_service.get_by_email(email)
-        
+        user = await self.user_service.get_by_email(email)
+
         # Include items if requested
         items = None
         if include_items and user:
-            items = await user_service.get_user_items(user.id)
-        
+            items = await self.user_service.get_user_items(user.id)
+
         # Create enhanced response with additional information
         enhanced_user = EnhancedUserResponseViewModel(
             **user.dict(),
             item_count=len(items) if items else 0,
             items=items if items else None
         )
-        
+
         return SuccessResponseModel(
             message="User retrieved successfully",
             data=enhanced_user,
@@ -197,14 +204,13 @@ class UserController:
                 "has_items": items is not None and len(items) > 0
             }
         )
-    
+
     async def get_user_items(
-        self,
-        user_id: int,
-        skip: int = Query(0, ge=0),
-        limit: int = Query(10, ge=1, le=100),
-        category: Optional[str] = None,
-        user_service: UserService = Depends(UserService.get_self)
+            self,
+            user_id: int,
+            skip: int = Query(0, ge=0),
+            limit: int = Query(10, ge=1, le=100),
+            category: Optional[str] = None
     ) -> SuccessResponseModel:
         """
         Get items owned by a user with pagination and filtering.
@@ -214,20 +220,19 @@ class UserController:
             skip: The number of items to skip
             limit: The maximum number of items to return
             category: Optional category filter
-            user_service: The user service for business logic
             
         Returns:
             SuccessResponseModel: The user's items with pagination metadata
         """
-        items = await user_service.get_user_items(user_id)
-        
+        items = await self.user_service.get_user_items(user_id)
+
         # Filter by category if provided
         if category:
             items = [item for item in items if item.category == category]
-        
+
         # Apply pagination (in a real app, this would be done at the database level)
         paginated_items = items[skip:skip + limit]
-        
+
         return SuccessResponseModel(
             message="User items retrieved successfully",
             data=paginated_items,
@@ -239,12 +244,11 @@ class UserController:
                 "filtered_by_category": category is not None
             }
         )
-    
+
     async def get_active_users(
-        self,
-        role: Optional[str] = None,
-        search: Optional[str] = None,
-        user_service: UserService = Depends(UserService.get_self)
+            self,
+            role: Optional[str] = None,
+            search: Optional[str] = None
     ) -> SuccessResponseModel:
         """
         Get active users with filtering options.
@@ -252,26 +256,25 @@ class UserController:
         Args:
             role: Optional role filter
             search: Optional search term for name or email
-            user_service: The user service for business logic
             
         Returns:
             SuccessResponseModel: The active users with filtering metadata
         """
-        users = await user_service.get_active_users()
-        
+        users = await self.user_service.get_active_users()
+
         # Apply role filter if provided
         if role:
             users = [user for user in users if user.role == role]
-        
+
         # Apply search filter if provided
         if search:
             search = search.lower()
             users = [
-                user for user in users 
-                if search in user.email.lower() or 
-                search in user.full_name.lower()
+                user for user in users
+                if search in user.email.lower() or
+                   search in user.full_name.lower()
             ]
-        
+
         return SuccessResponseModel(
             message="Active users retrieved successfully",
             data=users,
@@ -281,34 +284,32 @@ class UserController:
                 "filtered_by_search": search is not None
             }
         )
-    
+
     async def calculate_user_metrics(
-        self,
-        metric_values: List[float],
-        user_service: UserService = Depends(UserService.get_self)
+            self,
+            metric_values: List[float]
     ) -> SuccessResponseModel:
         """
         Calculate user metrics with detailed breakdown.
         
         Args:
             metric_values: List of metric values to calculate
-            user_service: The user service for business logic
             
         Returns:
             SuccessResponseModel: The calculated metrics with detailed breakdown
         """
-        metrics = await user_service.calculate_user_metrics(metric_values)
-        
+        metrics = await self.user_service.calculate_user_metrics(metric_values)
+
         # Add more detailed statistics
         additional_metrics = {
             "min": min(metric_values) if metric_values else 0,
             "max": max(metric_values) if metric_values else 0,
             "count": len(metric_values)
         }
-        
+
         # Combine all metrics
         all_metrics = {**metrics, **additional_metrics}
-        
+
         return SuccessResponseModel(
             message="User metrics calculated successfully",
             data=all_metrics,
@@ -316,31 +317,29 @@ class UserController:
                 "raw_values": metric_values
             }
         )
-    
+
     async def create_user(
-        self,
-        user: UserRequestViewModel,
-        user_service: UserService = Depends(UserService.get_self)
+            self,
+            user: UserRequestViewModel
     ) -> SuccessResponseModel:
         """
         Create a new user with enhanced response.
         
         Args:
             user: The user data
-            user_service: The user service for business logic
             
         Returns:
             SuccessResponseModel: The created user with additional information
         """
-        created_user = await user_service.create(user)
-        
+        created_user = await self.user_service.create(user)
+
         # Create enhanced response
         enhanced_user = EnhancedUserResponseViewModel(
             **created_user.dict(),
             item_count=0,
             items=None
         )
-        
+
         return SuccessResponseModel(
             message="User created successfully",
             data=enhanced_user,
@@ -348,12 +347,11 @@ class UserController:
                 "created_at": enhanced_user.created_at
             }
         )
-    
+
     async def update_user(
-        self,
-        user_id: int,
-        user: UserRequestViewModel,
-        user_service: UserService = Depends(UserService.get_self)
+            self,
+            user_id: int,
+            user: UserRequestViewModel
     ) -> SuccessResponseModel:
         """
         Update an existing user with enhanced response.
@@ -361,34 +359,33 @@ class UserController:
         Args:
             user_id: The ID of the user to update
             user: The updated user data
-            user_service: The user service for business logic
             
         Returns:
             SuccessResponseModel: The updated user with additional information
         """
         # Get the original user first for comparison
-        original_user = await user_service.get(user_id)
-        
+        original_user = await self.user_service.get(user_id)
+
         # Update the user
         user.id = user_id
-        updated_user = await user_service.update(user)
-        
+        updated_user = await self.user_service.update(user)
+
         # Get the user's items
-        items = await user_service.get_user_items(user_id)
-        
+        items = await self.user_service.get_user_items(user_id)
+
         # Create enhanced response
         enhanced_user = EnhancedUserResponseViewModel(
             **updated_user.dict(),
             item_count=len(items),
             items=None  # Don't include full items in update response
         )
-        
+
         # Determine what fields were updated
         updated_fields = []
         for field in updated_user.dict():
             if getattr(original_user, field) != getattr(updated_user, field):
                 updated_fields.append(field)
-        
+
         return SuccessResponseModel(
             message="User updated successfully",
             data=enhanced_user,
@@ -397,28 +394,26 @@ class UserController:
                 "updated_fields": updated_fields
             }
         )
-    
+
     async def delete_user(
-        self,
-        user_id: int,
-        user_service: UserService = Depends(UserService.get_self)
+            self,
+            user_id: int
     ) -> SuccessResponseModel:
         """
         Delete a user.
         
         Args:
             user_id: The ID of the user to delete
-            user_service: The user service for business logic
             
         Returns:
             SuccessResponseModel: Confirmation message
         """
         # Get the user before deletion for metadata
-        user = await user_service.get(user_id)
-        
+        user = await self.user_service.get(user_id)
+
         # Delete the user
-        await user_service.delete(user_id)
-        
+        await self.user_service.delete(user_id)
+
         return SuccessResponseModel(
             message=f"User with id {user_id} has been deleted",
             data={"message": f"User with id {user_id} has been deleted"},

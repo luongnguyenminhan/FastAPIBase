@@ -13,21 +13,21 @@ Last Modified: 21 Jan 2024
 Version: 1.0.0
 """
 
-from sqlalchemy import func
-from sqlalchemy.orm import Session
-from typing import Generic, TypeVar, Type, List, Optional
-from sqlalchemy.future import select
-from datetime import datetime
 import logging
-from app.schemas.business_model.common import PaginationParameterModel, PaginatedResultModel
+from datetime import datetime
+from typing import Generic, TypeVar, Type, List, Optional
+
 from app.db.models.base_model import BaseModel
+from app.repositories.repository_interface.i_base_repository import IRepository
+from app.schemas.business_model.common import PaginationParameterModel, PaginatedResultModel
 from pytz import timezone
+from sqlalchemy.orm import Session
 
 T = TypeVar('T', bound=BaseModel)
 logger = logging.getLogger(__name__)
 
 
-class BaseRepository(Generic[T]):
+class BaseRepository(Generic[T], IRepository[T]):
     """
     Base repository class for managing database operations
 
@@ -45,10 +45,15 @@ class BaseRepository(Generic[T]):
             model (Type[T]): The model class
             db (Session): The database session
         """
-        self.model: Type[T] = model
+        self._model: Type[T] = model
         self.db: Session = db
         self._dbSet = db.query(model)
         logger.info(f"Initialized {self.__class__.__name__} for model {model.__name__}")
+
+    @property
+    def model(self) -> Type[T]:
+        """Get the model class"""
+        return self._model
 
     def get_by_id(self, id: int) -> Optional[T]:
         """
@@ -156,7 +161,7 @@ class BaseRepository(Generic[T]):
             for entity in entities:
                 entity.is_deleted = True
                 entity.update_date = current_time
-            
+
             for entity in entities:
                 self.db.merge(entity)
             self.db.flush()
@@ -217,8 +222,9 @@ class BaseRepository(Generic[T]):
                 (pagination_parameter.page_index - 1) * pagination_parameter.page_size
             ).limit(pagination_parameter.page_size).all()
 
-            logger.debug(f"Paginated {self.model.__name__} results: page {pagination_parameter.page_index}, count {len(items)}, total {total_count}")
-            
+            logger.debug(
+                f"Paginated {self.model.__name__} results: page {pagination_parameter.page_index}, count {len(items)}, total {total_count}")
+
             return PaginatedResultModel(
                 items=items,
                 total_count=total_count,

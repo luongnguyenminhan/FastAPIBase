@@ -11,8 +11,9 @@ Last Modified: 21 Jan 2024
 Version: 1.0.0
 """
 
-from pydantic import BaseModel, Field, ConfigDict
 from typing import List, TypeVar, Generic
+
+from pydantic import BaseModel, Field, ConfigDict
 
 T = TypeVar('T')
 

@@ -13,10 +13,10 @@ Last Modified: 21 Jan 2024
 Version: 1.0.0
 """
 
-from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
-from decimal import Decimal
+
 from app.schemas.business_model.base import UserBusinessModel, ItemBusinessModel
+from pydantic import BaseModel, Field
 
 
 class UserRequestViewModel(UserBusinessModel):

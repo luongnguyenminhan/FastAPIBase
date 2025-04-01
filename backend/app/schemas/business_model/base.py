@@ -12,9 +12,10 @@ Last Modified: 21 Jan 2024
 Version: 1.0.0
 """
 
-from pydantic import BaseModel
-from typing import Optional
 from decimal import Decimal
+from typing import Optional
+
+from pydantic import BaseModel
 
 
 class UserBusinessModel(BaseModel):

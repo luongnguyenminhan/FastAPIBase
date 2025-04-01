@@ -1,5 +1,6 @@
 from app.db.base import Base
-from .users import User
+
 from .items import Item
+from .users import User
 
 __all__ = ['Base', 'User', 'Item']

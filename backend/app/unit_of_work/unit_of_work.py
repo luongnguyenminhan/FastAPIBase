@@ -24,10 +24,11 @@ Last Modified: 21 Jan 2024
 Version: 1.0.0
 """
 
-from sqlalchemy.orm import Session
-from app.repositories.user_repository import UserRepository
-from app.repositories.item_repository import ItemRepository
 from contextlib import contextmanager
+
+from app.repositories.item_repository import ItemRepository
+from app.repositories.user_repository import UserRepository
+from sqlalchemy.orm import Session
 
 
 class UnitOfWork:

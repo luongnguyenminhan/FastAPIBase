@@ -14,10 +14,10 @@ Last Modified: 21 Jan 2024
 Version: 1.0.0
 """
 
-from pydantic import BaseModel, Field
-from typing import TypeVar, Generic, Optional, Dict, Any
 from enum import Enum
+from typing import TypeVar, Generic, Optional, Dict, Any
 
+from pydantic import BaseModel, Field
 
 # Generic type variable for response data
 T = TypeVar('T')
@@ -64,7 +64,7 @@ class BaseResponseModel(BaseModel, Generic[T]):
         default=None,
         description="Additional metadata about the response"
     )
-    
+
     class Config:
         """
         Pydantic model configuration
