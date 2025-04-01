@@ -17,6 +17,7 @@ from sqlalchemy import Column, Integer, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 from pydantic import ConfigDict
+from pytz import timezone
 
 Base = declarative_base()
 
