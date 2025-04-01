@@ -31,3 +31,9 @@ alwaysApply: true
 - in interface, always use @property decorator for getter and setter.
 - in interface, always use @abstractmethod decorator for method.
 - in interface do not need to use __init__ method and docstring.
+
+-if code are repetitive, create a new common class and use it in all classes.
+- if code are repetitive, create a new common function and use it in all functions.
+- if code are repetitive, create a new common method and use it in all methods.
+
+- make sure code are low coupled and high cohesive.
