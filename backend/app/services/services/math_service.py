@@ -11,7 +11,7 @@ Dependencies:
 - MathOperations utility class for performing calculations
 
 Author: Minh An
-Last Modified: 21 Jan 2024
+Last Modified: 23 Jun 2024
 Version: 1.0.0
 """
 
@@ -20,10 +20,13 @@ import logging
 from app.unit_of_work.unit_of_work import UnitOfWork
 from app.services.utils.example_core import MathOperations
 from .base_service import service_method, BaseService
-from fastapi import HTTPException, status
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.db.base import get_db
+from app.services.utils.exceptions.exceptions import (
+    BadRequestException,
+    InternalServerException
+)
 
 logger = logging.getLogger(__name__)
 
@@ -82,15 +85,15 @@ class MathService(BaseService[Any]):
             float: The result of the operation
 
         Raises:
-            HTTPException: If the operation is not supported
+            BadRequestException: If the operation is not supported or if there's a calculation error
         """
         logger.debug(f"Calculating operation: {operation} with x={x}, y={y}")
         
         if operation not in self.operations:
             logger.warning(f"Unsupported operation requested: {operation}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported operation: {operation}"
+            raise BadRequestException(
+                error_code="UNSUPPORTED_OPERATION",
+                message=f"Unsupported operation: {operation}"
             )
         
         try:
@@ -99,15 +102,15 @@ class MathService(BaseService[Any]):
             return result
         except ZeroDivisionError:
             logger.error(f"Division by zero error in operation {operation} with x={x}, y={y}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Division by zero is not allowed"
+            raise BadRequestException(
+                error_code="DIVISION_BY_ZERO",
+                message="Division by zero is not allowed"
             )
         except Exception as e:
             logger.error(f"Error in operation {operation} with x={x}, y={y}: {str(e)}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error performing operation: {str(e)}"
+            raise InternalServerException(
+                error_code="CALCULATION_ERROR",
+                message=f"Error performing operation: {str(e)}"
             )
     
     @service_method
@@ -133,13 +136,35 @@ class MathService(BaseService[Any]):
             List[float]: A list of results for each operation
 
         Raises:
-            HTTPException: If any operation is not supported
+            BadRequestException: If any operation is not supported or if the input is invalid
         """
         logger.debug(f"Calculating multiple operations: {len(operations)} operations")
+        
+        if not operations:
+            logger.warning("Empty operations list provided")
+            raise BadRequestException(
+                error_code="EMPTY_OPERATIONS_LIST",
+                message="Cannot process empty operations list"
+            )
+            
         results: List[float] = []
         
-        for op_data in operations:
+        for i, op_data in enumerate(operations):
+            if not isinstance(op_data, dict):
+                logger.error(f"Invalid operation data format at index {i}")
+                raise BadRequestException(
+                    error_code="INVALID_OPERATION_FORMAT",
+                    message=f"Operation at index {i} has invalid format"
+                )
+                
             operation: str = op_data.get('operation', '')
+            if not operation:
+                logger.error(f"Missing operation name at index {i}")
+                raise BadRequestException(
+                    error_code="MISSING_OPERATION_NAME",
+                    message=f"Operation name is missing at index {i}"
+                )
+                
             x: float = op_data.get('x', 0.0)
             y: float = op_data.get('y', 0.0)
             

@@ -21,6 +21,7 @@ from datetime import datetime
 import logging
 from app.schemas.business_model.common import PaginationParameterModel, PaginatedResultModel
 from app.db.models.base_model import BaseModel
+from pytz import timezone
 
 T = TypeVar('T', bound=BaseModel)
 logger = logging.getLogger(__name__)
@@ -83,7 +84,7 @@ class BaseRepository(Generic[T]):
             T: The added entity
         """
         try:
-            entity.create_date = datetime.utcnow()
+            entity.create_date = datetime.now(timezone("Asia/Ho_Chi_Minh"))
             self.db.add(entity)
             self.db.flush()
             logger.info(f"Added new {self.model.__name__} with id: {entity.id}")
@@ -100,7 +101,7 @@ class BaseRepository(Generic[T]):
             entities (List[T]): The list of entities to add
         """
         try:
-            current_time: datetime = datetime.utcnow()
+            current_time: datetime = datetime.now(timezone("Asia/Ho_Chi_Minh"))
             for entity in entities:
                 entity.create_date = current_time
             self.db.add_all(entities)
@@ -118,7 +119,7 @@ class BaseRepository(Generic[T]):
             entity (T): The entity to update
         """
         try:
-            entity.update_date = datetime.utcnow()
+            entity.update_date = datetime.now(timezone("Asia/Ho_Chi_Minh"))
             self.db.merge(entity)
             self.db.flush()
             logger.info(f"Updated {self.model.__name__} with id: {entity.id}")
@@ -135,7 +136,7 @@ class BaseRepository(Generic[T]):
         """
         try:
             entity.is_deleted = True
-            entity.update_date = datetime.utcnow()
+            entity.update_date = datetime.now(timezone("Asia/Ho_Chi_Minh"))
             self.db.merge(entity)
             self.db.flush()
             logger.info(f"Soft deleted {self.model.__name__} with id: {entity.id}")
@@ -151,7 +152,7 @@ class BaseRepository(Generic[T]):
             entities (List[T]): The list of entities to soft delete
         """
         try:
-            current_time: datetime = datetime.utcnow()
+            current_time: datetime = datetime.now(timezone("Asia/Ho_Chi_Minh"))
             for entity in entities:
                 entity.is_deleted = True
                 entity.update_date = current_time

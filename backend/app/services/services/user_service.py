@@ -11,7 +11,7 @@ Dependencies:
 - Repository pattern for data access
 
 Author: Minh An
-Last Modified: 21 Jan 2024
+Last Modified: 23 Jun 2024
 Version: 1.0.0
 """
 
@@ -22,9 +22,14 @@ from app.db.models import User
 from app.db.models.items import Item
 from app.repositories.user_repository import UserRepository
 from app.unit_of_work.unit_of_work import UnitOfWork
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.db.base import get_db
+from app.services.utils.exceptions.exceptions import (
+    NotFoundException, 
+    BadRequestException,
+    InternalServerException
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +78,14 @@ class UserService(BaseService[User]):
             Optional[User]: The user with the specified email or None if not found
         """
         logger.debug(f"Getting user by email: {email}")
-        return self.uow.user_repository.get_by_email(email)
+        user = self.uow.user_repository.get_by_email(email)
+        if not user:
+            logger.warning(f"User with email {email} not found")
+            raise NotFoundException(
+                error_code="USER_EMAIL_NOT_FOUND",
+                message=f"User with email {email} not found"
+            )
+        return user
 
     @service_method
     async def get_active_users(self) -> List[User]:
@@ -96,8 +108,18 @@ class UserService(BaseService[User]):
 
         Returns:
             List[Item]: A list of items owned by the user
+            
+        Raises:
+            NotFoundException: If the user is not found
         """
         logger.debug(f"Getting items for user ID: {user_id}")
+        user = self.uow.user_repository.get_by_id(user_id)
+        if not user:
+            logger.warning(f"User with ID {user_id} not found")
+            raise NotFoundException(
+                error_code="USER_NOT_FOUND",
+                message=f"User with id {user_id} not found"
+            )
         return self.uow.item_repository.get_by_owner(user_id)
 
     @service_method
@@ -110,14 +132,28 @@ class UserService(BaseService[User]):
 
         Returns:
             Dict[str, Union[float, int]]: A dictionary containing the total and average of the metric values
+            
+        Raises:
+            BadRequestException: If the metric values list is empty
         """
         logger.debug(f"Calculating metrics for {len(metric_values)} values")
         if not metric_values:
-            return {"total": 0, "average": 0}
+            logger.warning("Empty metric values list provided")
+            raise BadRequestException(
+                error_code="EMPTY_METRICS",
+                message="Cannot calculate metrics with empty values list"
+            )
         
-        total: float = sum(metric_values)
-        average: float = total / len(metric_values)
-        return {"total": total, "average": average}
+        try:
+            total: float = sum(metric_values)
+            average: float = total / len(metric_values)
+            return {"total": total, "average": average}
+        except Exception as e:
+            logger.error(f"Error calculating metrics: {str(e)}")
+            raise InternalServerException(
+                error_code="METRICS_CALCULATION_ERROR",
+                message=f"Failed to calculate metrics: {str(e)}"
+            )
 
     @service_method
     async def get(self, id: int) -> User:
@@ -131,15 +167,15 @@ class UserService(BaseService[User]):
             User: The user with the specified ID
 
         Raises:
-            HTTPException: If the user is not found
+            NotFoundException: If the user is not found
         """
         logger.debug(f"Getting user by ID: {id}")
         user: Optional[User] = self.uow.user_repository.get_by_id(id)
         if not user:
             logger.warning(f"User with ID {id} not found")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with id {id} not found"
+            raise NotFoundException(
+                error_code="USER_NOT_FOUND",
+                message=f"User with id {id} not found"
             )
         return user
 
@@ -156,15 +192,29 @@ class UserService(BaseService[User]):
         """
         try:
             logger.info(f"Creating new user with email: {user.email}")
+            # Check if user with email already exists
+            existing_user = self.uow.user_repository.get_by_email(user.email)
+            if existing_user:
+                logger.warning(f"User with email {user.email} already exists")
+                raise BadRequestException(
+                    error_code="EMAIL_ALREADY_EXISTS",
+                    message=f"User with email {user.email} already exists"
+                )
+                
             with self.uow:
                 created_user: User = self.uow.user_repository.add(user)
                 self.uow.commit()
             logger.info(f"Created user with ID: {created_user.id}")
             return created_user
+        except BadRequestException:
+            raise
         except Exception as e:
             logger.error(f"Error creating user: {str(e)}")
             self.uow.rollback()
-            raise
+            raise InternalServerException(
+                error_code="USER_CREATION_ERROR",
+                message=f"Failed to create user: {str(e)}"
+            )
 
     @service_method
     async def update(self, user: User) -> User:
@@ -183,21 +233,24 @@ class UserService(BaseService[User]):
                 existing_user: Optional[User] = self.uow.user_repository.get_by_id(user.id)
                 if not existing_user:
                     logger.warning(f"User with ID {user.id} not found for update")
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"User with id {user.id} not found"
+                    raise NotFoundException(
+                        error_code="USER_NOT_FOUND",
+                        message=f"User with id {user.id} not found"
                     )
                 
                 self.uow.user_repository.update(user)
                 self.uow.commit()
             logger.info(f"Updated user with ID: {user.id}")
             return user
-        except HTTPException:
+        except NotFoundException:
             raise
         except Exception as e:
             logger.error(f"Error updating user: {str(e)}")
             self.uow.rollback()
-            raise
+            raise InternalServerException(
+                error_code="USER_UPDATE_ERROR",
+                message=f"Failed to update user: {str(e)}"
+            )
 
     @service_method
     async def delete(self, id: int) -> None:
@@ -211,7 +264,7 @@ class UserService(BaseService[User]):
             None
 
         Raises:
-            HTTPException: If the user is not found
+            NotFoundException: If the user is not found
         """
         try:
             logger.info(f"Deleting user with ID: {id}")
@@ -219,17 +272,20 @@ class UserService(BaseService[User]):
                 user: Optional[User] = self.uow.user_repository.get_by_id(id)
                 if not user:
                     logger.warning(f"User with ID {id} not found for deletion")
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"User with id {id} not found"
+                    raise NotFoundException(
+                        error_code="USER_NOT_FOUND",
+                        message=f"User with id {id} not found"
                     )
                 
                 self.uow.user_repository.soft_delete(user)
                 self.uow.commit()
             logger.info(f"Deleted user with ID: {id}")
-        except HTTPException:
+        except NotFoundException:
             raise
         except Exception as e:
             logger.error(f"Error deleting user: {str(e)}")
             self.uow.rollback()
-            raise
+            raise InternalServerException(
+                error_code="USER_DELETION_ERROR",
+                message=f"Failed to delete user: {str(e)}"
+            )

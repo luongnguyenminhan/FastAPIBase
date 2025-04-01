@@ -14,18 +14,40 @@ Version: 1.0.0
 """
 
 import os
+from typing import Dict, Any
+from pydantic import BaseSettings, validator
 from dotenv import load_dotenv  # type: ignore
 
 load_dotenv()
 
-PROJECT_NAME = "FastAPI Project"
-API_V1_STR = "/api/v1"
-API_V2_STR = "/api/v2"
-DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "******")
-DB_HOST = os.getenv("DB_HOST", "mysql")
-DB_PORT = os.getenv("DB_PORT", "3306")
-DB_NAME = os.getenv("DB_NAME", "test")
-DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-SQLALCHEMY_DATABASE_URI = DATABASE_URL
+class AppSettings(BaseSettings):
+    """Application settings class using Pydantic for type validation."""
+    
+    PROJECT_NAME: str = "FastAPI Project"
+    API_V1_STR: str = "/api/v1"
+    API_V2_STR: str = "/api/v2"
+    
+    DB_USER: str = os.getenv("DB_USER", "root")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "******")
+    DB_HOST: str = os.getenv("DB_HOST", "mysql")
+    DB_PORT: str = os.getenv("DB_PORT", "3306")
+    DB_NAME: str = os.getenv("DB_NAME", "test")
+    
+    @property
+    def DATABASE_URL(self) -> str:
+        """Generate the database URL from individual components."""
+        return f"mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+    
+    @property
+    def SQLALCHEMY_DATABASE_URI(self) -> str:
+        """Return the SQLAlchemy database URI."""
+        return self.DATABASE_URL
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
+
+
+# Create a global instance for use throughout the application
+settings = AppSettings()

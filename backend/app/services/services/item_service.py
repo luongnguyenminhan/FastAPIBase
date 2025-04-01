@@ -12,11 +12,11 @@ Dependencies:
 - MathOperations utility class for performing calculations
 
 Author: Minh An
-Last Modified: 21 Jan 2024
+Last Modified: 23 Jun 2024
 Version: 1.0.0
 """
 
-from fastapi import HTTPException, status, Depends
+from fastapi import Depends, status
 from typing import List, Optional, Dict, Union, Any
 import logging
 from .base_service import BaseService, service_method
@@ -27,6 +27,11 @@ from app.services.utils.example_core import MathOperations
 from app.unit_of_work.unit_of_work import UnitOfWork
 from sqlalchemy.orm import Session
 from app.db.base import get_db
+from app.services.utils.exceptions.exceptions import (
+    NotFoundException, 
+    BadRequestException,
+    InternalServerException
+)
 
 logger = logging.getLogger(__name__)
 
@@ -61,15 +66,15 @@ class ItemService(BaseService[Item]):
             List[Item]: A list of items owned by the user
 
         Raises:
-            HTTPException: If the owner is not found
+            NotFoundException: If the owner is not found
         """
         logger.debug(f"Getting items for owner ID: {owner_id}")
         user: Optional[User] = self.uow.user_repository.get_by_id(owner_id)
         if not user:
             logger.warning(f"Owner with ID {owner_id} not found")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Owner with id {owner_id} not found"
+            raise NotFoundException(
+                error_code="OWNER_NOT_FOUND",
+                message=f"Owner with id {owner_id} not found"
             )
         return self.uow.item_repository.get_by_owner(owner_id)
 
@@ -105,19 +110,22 @@ class ItemService(BaseService[Item]):
                 updated_stock: Optional[int] = self.uow.item_repository.update_stock(id, quantity)
                 if updated_stock is None:
                     logger.warning(f"Item with ID {id} not found for stock update")
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"Item with id {id} not found"
+                    raise NotFoundException(
+                        error_code="ITEM_NOT_FOUND",
+                        message=f"Item with id {id} not found"
                     )
                 self.uow.commit()
                 logger.info(f"Updated stock for item ID {id} to {quantity}")
                 return updated_stock
-        except HTTPException:
+        except NotFoundException:
             raise
         except Exception as e:
             logger.error(f"Error updating stock for item ID {id}: {str(e)}")
             self.uow.rollback()
-            raise
+            raise InternalServerException(
+                error_code="STOCK_UPDATE_ERROR",
+                message=f"Failed to update stock: {str(e)}"
+            )
 
     @service_method
     async def calculate_total_value(self, price: float, quantity: int) -> float:
@@ -146,12 +154,27 @@ class ItemService(BaseService[Item]):
 
         Returns:
             float: The discounted price of the item
+            
+        Raises:
+            BadRequestException: If the discount percentage is invalid
         """
         logger.debug(f"Calculating discount for price: {price}, discount: {discount_percentage}%")
-        discount_rate: float = MathOperations.divide(discount_percentage, 100)
-        discount_amount: float = MathOperations.multiply(price, discount_rate)
-        discounted_price: float = MathOperations.subtract(price, discount_amount)
-        return discounted_price
+        if discount_percentage < 0 or discount_percentage > 100:
+            raise BadRequestException(
+                error_code="INVALID_DISCOUNT_PERCENTAGE",
+                message="Discount percentage must be between 0 and 100"
+            )
+        
+        try:
+            discount_rate: float = MathOperations.divide(discount_percentage, 100)
+            discount_amount: float = MathOperations.multiply(price, discount_rate)
+            discounted_price: float = MathOperations.subtract(price, discount_amount)
+            return discounted_price
+        except ValueError as e:
+            raise BadRequestException(
+                error_code="CALCULATION_ERROR",
+                message=str(e)
+            )
 
     @service_method
     async def get(self, id: int) -> Item:
@@ -165,15 +188,15 @@ class ItemService(BaseService[Item]):
             Item: The item with the specified ID
 
         Raises:
-            HTTPException: If the item is not found
+            NotFoundException: If the item is not found
         """
         logger.debug(f"Getting item by ID: {id}")
         item: Optional[Item] = self.uow.item_repository.get_by_id(id)
         if not item:
             logger.warning(f"Item with ID {id} not found")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Item with id {id} not found"
+            raise NotFoundException(
+                error_code="ITEM_NOT_FOUND",
+                message=f"Item with id {id} not found"
             )
         return item
 
@@ -198,7 +221,10 @@ class ItemService(BaseService[Item]):
         except Exception as e:
             logger.error(f"Error creating item: {str(e)}")
             self.uow.rollback()
-            raise
+            raise InternalServerException(
+                error_code="ITEM_CREATION_ERROR",
+                message=f"Failed to create item: {str(e)}"
+            )
 
     @service_method
     async def update(self, item: Item) -> Item:
@@ -217,21 +243,24 @@ class ItemService(BaseService[Item]):
                 existing_item: Optional[Item] = self.uow.item_repository.get_by_id(item.id)
                 if not existing_item:
                     logger.warning(f"Item with ID {item.id} not found for update")
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"Item with id {item.id} not found"
+                    raise NotFoundException(
+                        error_code="ITEM_NOT_FOUND",
+                        message=f"Item with id {item.id} not found"
                     )
                 
                 self.uow.item_repository.update(item)
                 self.uow.commit()
             logger.info(f"Updated item with ID: {item.id}")
             return item
-        except HTTPException:
+        except NotFoundException:
             raise
         except Exception as e:
             logger.error(f"Error updating item: {str(e)}")
             self.uow.rollback()
-            raise
+            raise InternalServerException(
+                error_code="ITEM_UPDATE_ERROR",
+                message=f"Failed to update item: {str(e)}"
+            )
 
     @service_method
     async def delete(self, id: int) -> None:
@@ -245,7 +274,7 @@ class ItemService(BaseService[Item]):
             None
 
         Raises:
-            HTTPException: If the item is not found
+            NotFoundException: If the item is not found
         """
         try:
             logger.info(f"Deleting item with ID: {id}")
@@ -253,20 +282,23 @@ class ItemService(BaseService[Item]):
                 item: Optional[Item] = self.uow.item_repository.get_by_id(id)
                 if not item:
                     logger.warning(f"Item with ID {id} not found for deletion")
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"Item with id {id} not found"
+                    raise NotFoundException(
+                        error_code="ITEM_NOT_FOUND",
+                        message=f"Item with id {id} not found"
                     )
                 
                 self.uow.item_repository.soft_delete(item)
                 self.uow.commit()
             logger.info(f"Deleted item with ID: {id}")
-        except HTTPException:
+        except NotFoundException:
             raise
         except Exception as e:
             logger.error(f"Error deleting item: {str(e)}")
             self.uow.rollback()
-            raise
+            raise InternalServerException(
+                error_code="ITEM_DELETION_ERROR",
+                message=f"Failed to delete item: {str(e)}"
+            )
 
     @staticmethod
     def get_self(db: Session = Depends(get_db)) -> 'ItemService':

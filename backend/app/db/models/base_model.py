@@ -36,7 +36,7 @@ class BaseModel(Base):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     id = Column(Integer, primary_key=True, index=True)
-    create_date = Column(DateTime, default=datetime.utcnow)
+    create_date = Column(DateTime, default=datetime.now(timezone("Asia/Ho_Chi_Minh")))
     update_date = Column(DateTime, nullable=True)
     is_deleted = Column(Boolean, default=False)
 

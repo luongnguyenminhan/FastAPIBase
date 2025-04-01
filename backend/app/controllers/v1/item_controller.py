@@ -22,7 +22,7 @@ from app.schemas.view_model.request import (
     ItemRequestViewModel,
     ItemStockUpdateViewModel
 )
-from app.schemas.common import BaseResponseModel, SuccessResponseModel
+from app.schemas.business_model.response_base import BaseResponseModel, SuccessResponseModel
 
 
 class ItemController:

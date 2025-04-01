@@ -20,17 +20,27 @@ Last Modified: 23 Jun 2024
 Version: 2.0.0
 """
 
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from app.core.config import API_V1_STR, API_V2_STR, PROJECT_NAME
+from app.core.config import settings
 from app.controllers.v1 import api_router as api_v1_router
 from app.controllers.v2 import api_router as api_v2_router
 from app.db.base import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import Dict
-from app.schemas.common import ErrorResponseModel, BaseResponseModel, ResponseStatus
+from app.schemas.business_model.response_base import ErrorResponseModel, BaseResponseModel, ResponseStatus, SuccessResponseModel
+from app.services.utils.exceptions.exceptions import (
+    register_exception_handlers, 
+    APIException, 
+    BadRequestException,
+    UnauthorizedException,
+    ForbiddenException,
+    NotFoundException,
+    ConflictException,
+    InternalServerException
+)
 
 description = """
 🚀 Tài Liệu API
@@ -42,7 +52,7 @@ description = """
 """
 
 app = FastAPI(
-    title=PROJECT_NAME,
+    title=settings.PROJECT_NAME,
     description=description,
     version="2.0.0",
     terms_of_service="http://example.com/terms/",
@@ -66,158 +76,95 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Đăng ký các exception handlers từ app.services.utils.exceptions.exceptions
+register_exception_handlers(app)
 
-@app.on_event("startup")
-async def startup_event():
+# Health check endpoints
+@app.get("/health", tags=["Health"], summary="Get application health status")
+async def health_check() -> SuccessResponseModel:
     """
-    Xử lý các tác vụ khởi động ứng dụng
-
-    Chức năng:
-    - Khởi tạo kết nối cơ sở dữ liệu
-    - Thiết lập bộ nhớ đệm nếu cần
-    - Khởi tạo các dịch vụ bên ngoài
-
-    Raises:
-        Exception: Ghi log các lỗi xảy ra trong quá trình khởi động
-    """
-    try:
-        # Bạn có thể khởi tạo tài nguyên ở đây
-        pass
-    except Exception as e:
-        print(f"Lỗi khởi động: {e}")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """
-    Xử lý các tác vụ khi tắt ứng dụng
-
-    Chức năng:
-    - Đóng kết nối cơ sở dữ liệu
-    - Giải phóng tài nguyên
-    - Lưu trạng thái nếu cần
-
-    Raises:
-        Exception: Ghi log các lỗi xảy ra trong quá trình tắt
-    """
-    try:
-        # Bạn có thể dọn dẹp tài nguyên ở đây
-        pass
-    except Exception as e:
-        print(f"Lỗi khi tắt: {e}")
-
-
-@app.get("/health", response_model=BaseResponseModel[Dict[str, str]])
-async def health_check():
-    """
-    Kiểm tra trạng thái hoạt động của API
-
+    Health check endpoint to verify the application is running
+    
     Returns:
-        Dict[str, str]: Từ điển chứa trạng thái và phiên bản API
-            - status: Trạng thái hoạt động hiện tại
-            - version: Số phiên bản API
-
-    Example:
-        Response: {"status": "hoạt động", "version": "2.0.0"}
+        SuccessResponseModel: Health status information
     """
-    return {
-        "status": ResponseStatus.SUCCESS,
-        "message": "Health check completed successfully",
-        "data": {
-            "status": "hoạt động",
-            "version": "2.0.0"
-        }
-    }
+    return SuccessResponseModel(
+        message="API is running",
+        data={"status": "healthy"},
+        metadata={"version": "2.0.0"}
+    )
 
-
-@app.get("/test-db", response_model=BaseResponseModel[Dict[str, str]])
-async def test_db(db: Session = Depends(get_db)):
+@app.get("/test-db", tags=["Health"], summary="Test database connection")
+async def test_db_connection(db: Session = Depends(get_db)) -> SuccessResponseModel:
     """
-    Kiểm tra kết nối đến cơ sở dữ liệu
-
+    Test the database connection
+    
     Args:
-        db (Session): Phiên làm việc với cơ sở dữ liệu, được inject tự động
-
+        db (Session): The database session
+    
     Returns:
-        dict: Kết quả kiểm tra kết nối
-            - status: Trạng thái kết nối
-            - message: Thông báo chi tiết
-            - result: Kết quả truy vấn test
-
+        SuccessResponseModel: Database connection status
+        
     Raises:
-        HTTPException: Khi không thể kết nối đến cơ sở dữ liệu
+        InternalServerException: If the database connection fails
     """
     try:
-        result = db.execute(text("SELECT 1 as test"))
-        return {
-            "status": ResponseStatus.SUCCESS,
-            "message": "Database connection test completed successfully",
-            "data": {
-                "status": "thành công",
-                "message": "Kết nối cơ sở dữ liệu thành công",
-                "result": result.first()[0]
-            }
-        }
+        result = db.execute(text("SELECT 1")).scalar()
+        return SuccessResponseModel(
+            message="Database connection successful",
+            data={"database_test": result == 1},
+            metadata={"database_uri": settings.SQLALCHEMY_DATABASE_URI.replace(settings.DB_PASSWORD, "****")}
+        )
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Kết nối cơ sở dữ liệu thất bại: {str(e)}"
+        raise InternalServerException(
+            error_code="DATABASE_CONNECTION_ERROR",
+            message=f"Database connection failed: {str(e)}"
         )
 
-
-# Xử lý ngoại lệ
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
+# Error test endpoints (for testing exception handling)
+@app.get("/test-error/{error_type}", tags=["Testing"], summary="Test error responses")
+async def test_error(error_type: str) -> SuccessResponseModel:
     """
-    Xử lý các ngoại lệ HTTP
-
+    Test endpoint to verify error handling
+    
     Args:
-        request: Request gây ra ngoại lệ
-        exc: Đối tượng ngoại lệ HTTP
-
+        error_type (str): Type of error to simulate
+    
     Returns:
-        JSONResponse: Phản hồi JSON chứa thông tin lỗi
+        SuccessResponseModel: Never returned as this always raises an exception
+        
+    Raises:
+        Various exceptions based on the error_type parameter
     """
-    return JSONResponse(
-        status_code=exc.status_code,
-        content=ErrorResponseModel(
-            status=ResponseStatus.ERROR,
-            error_code=f"HTTP_{exc.status_code}",
-            message=exc.detail
-        ).dict()
-    )
-
-
-@app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
-    """
-    Xử lý các ngoại lệ chung
-
-    Args:
-        request: Request gây ra ngoại lệ
-        exc: Đối tượng ngoại lệ
-
-    Returns:
-        JSONResponse: Phản hồi JSON chứa thông báo lỗi chung
-    """
-    return JSONResponse(
-        status_code=500,
-        content=ErrorResponseModel(
-            status=ResponseStatus.ERROR,
-            error_code="INTERNAL_SERVER_ERROR",
-            message="Lỗi máy chủ nội bộ"
-        ).dict()
-    )
-
+    if error_type == "bad_request":
+        raise BadRequestException(message="Bad request error test")
+    elif error_type == "unauthorized":
+        raise UnauthorizedException(message="Unauthorized error test")
+    elif error_type == "forbidden":
+        raise ForbiddenException(message="Forbidden error test")
+    elif error_type == "not_found":
+        raise NotFoundException(message="Not found error test")
+    elif error_type == "conflict":
+        raise ConflictException(message="Conflict error test")
+    elif error_type == "server_error":
+        raise InternalServerException(message="Internal server error test")
+    elif error_type == "unhandled":
+        # Test unhandled exception
+        raise ValueError("Unhandled error test")
+    else:
+        return SuccessResponseModel(
+            message="No error triggered",
+            data={"error_type": error_type}
+        )
 
 # Bao gồm các controller routers
 app.include_router(
     api_v1_router,
-    prefix=API_V1_STR,
+    prefix=settings.API_V1_STR,
     tags=["API v1"]
 )
 app.include_router(
     api_v2_router,
-    prefix=API_V2_STR,
+    prefix=settings.API_V2_STR,
     tags=["API v2"]
 )

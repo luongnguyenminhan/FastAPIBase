@@ -18,7 +18,7 @@ from app.schemas.view_model.response import (
     MessageResponseViewModel
 )
 from app.schemas.view_model.request import UserRequestViewModel
-from app.schemas.common import BaseResponseModel, SuccessResponseModel
+from app.schemas.business_model.response_base import BaseResponseModel, SuccessResponseModel
 
 
 class UserController:

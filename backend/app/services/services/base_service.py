@@ -18,7 +18,7 @@ Dependencies:
 - Repository pattern for data access
 
 Author: Minh An
-Last Modified: 21 Jan 2024
+Last Modified: 23 Jun 2024
 Version: 1.0.0
 """
 
@@ -26,11 +26,17 @@ from abc import abstractmethod
 from typing import Generic, TypeVar, Callable, Type, Any, Optional, TypedDict, cast
 from functools import wraps
 import logging
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, status
 from sqlalchemy.orm import Session
 from app.unit_of_work.unit_of_work import UnitOfWork
 from app.repositories.base_repository import BaseRepository
 from app.db.base import get_db
+from app.services.utils.exceptions.exceptions import (
+    APIException, 
+    InternalServerException, 
+    NotFoundException,
+    BadRequestException
+)
 
 T = TypeVar('T')
 logger = logging.getLogger(__name__)
@@ -61,14 +67,16 @@ def service_method(func: Callable) -> Callable:
             result = await func(self, *args, **kwargs)
             logger.debug(f"Completed service method: {func.__name__}")
             return result
-        except HTTPException as he:
-            logger.error(f"HTTP exception in {func.__name__}: {he.detail}")
-            raise he
+        except APIException as ae:
+            # Let custom exceptions pass through
+            logger.error(f"API exception in {func.__name__}: {ae.detail}")
+            raise ae
         except Exception as e:
             logger.error(f"Exception in {func.__name__}: {str(e)}", exc_info=True)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=str(e)
+            # Convert generic exceptions to InternalServerException
+            raise InternalServerException(
+                error_code="INTERNAL_SERVER_ERROR",
+                message=str(e)
             )
     return wrapper
 
