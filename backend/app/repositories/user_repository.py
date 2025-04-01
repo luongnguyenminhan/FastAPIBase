@@ -16,6 +16,10 @@ Version: 1.0.0
 from .base_repository import BaseRepository
 from app.db.models import User
 from sqlalchemy.orm import Session
+from typing import List, Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class UserRepository(BaseRepository[User]):
@@ -34,8 +38,9 @@ class UserRepository(BaseRepository[User]):
             db (Session): The database session
         """
         super().__init__(User, db)
+        logger.info("UserRepository initialized")
 
-    def get_by_email(self, email: str) -> User:
+    def get_by_email(self, email: str) -> Optional[User]:
         """
         Get a user by email
 
@@ -43,15 +48,17 @@ class UserRepository(BaseRepository[User]):
             email (str): The email of the user
 
         Returns:
-            User: The user with the specified email
+            Optional[User]: The user with the specified email or None if not found
         """
+        logger.debug(f"Getting user by email: {email}")
         return self._dbSet.filter_by(email=email, is_deleted=False).first()
 
-    def get_active_users(self):
+    def get_active_users(self) -> List[User]:
         """
         Get all active users
 
         Returns:
             List[User]: A list of active users
         """
+        logger.debug("Getting all active users")
         return self._dbSet.filter_by(is_active=True, is_deleted=False).all()

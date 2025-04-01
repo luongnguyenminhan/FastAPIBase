@@ -1,10 +1,16 @@
-from .base_schemas import UserBase
-from .response_schema import UserResponse
-from .request_schema import UserRequest
+"""
+User Schema Exports
 
-# Re-export needed models
+This file re-exports user-related schemas from business and view models.
+"""
+
+from app.schemas.business_model.base import UserBusinessModel
+from app.schemas.view_model.request import UserRequestViewModel
+from app.schemas.view_model.response import UserResponseViewModel, UserMetricsResponseViewModel
+
 __all__ = [
-    'UserBase',
-    'UserRequest',
-    'UserResponse'
+    'UserBusinessModel',
+    'UserRequestViewModel',
+    'UserResponseViewModel',
+    'UserMetricsResponseViewModel'
 ]

@@ -16,26 +16,21 @@ Dependencies:
 - Various internal modules from app package
 
 Author: Minh An
-Last Modified: 21 Jan 2025
+Last Modified: 23 Jun 2024
 Version: 2.0.0
 """
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config import API_V1_STR, API_V2_STR, PROJECT_NAME
-from app.api.api_v1.api import api_router as api_v1_router
-from app.api.api_v2.api import api_router as api_v2_router
+from app.controllers.v1 import api_router as api_v1_router
+from app.controllers.v2 import api_router as api_v2_router
 from app.db.base import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import Dict
-from app.api.api_v1.user_controller import user_router as api_v1_user_router
-from app.api.api_v1.item_controller import item_router as api_v1_item_router
-from app.api.api_v1.math_controller import math_router as api_v1_math_router
-from app.api.api_v2.user_controller import user_router as api_v2_user_router
-from app.api.api_v2.item_controller import item_router as api_v2_item_router
-from app.api.api_v2.math_controller import math_router as api_v2_math_router
+from app.schemas.common import ErrorResponseModel, BaseResponseModel, ResponseStatus
 
 description = """
 🚀 Tài Liệu API
@@ -112,7 +107,7 @@ async def shutdown_event():
         print(f"Lỗi khi tắt: {e}")
 
 
-@app.get("/health", response_model=Dict[str, str])
+@app.get("/health", response_model=BaseResponseModel[Dict[str, str]])
 async def health_check():
     """
     Kiểm tra trạng thái hoạt động của API
@@ -126,12 +121,16 @@ async def health_check():
         Response: {"status": "hoạt động", "version": "2.0.0"}
     """
     return {
-        "status": "hoạt động",
-        "version": "2.0.0"
+        "status": ResponseStatus.SUCCESS,
+        "message": "Health check completed successfully",
+        "data": {
+            "status": "hoạt động",
+            "version": "2.0.0"
+        }
     }
 
 
-@app.get("/test-db")
+@app.get("/test-db", response_model=BaseResponseModel[Dict[str, str]])
 async def test_db(db: Session = Depends(get_db)):
     """
     Kiểm tra kết nối đến cơ sở dữ liệu
@@ -151,9 +150,13 @@ async def test_db(db: Session = Depends(get_db)):
     try:
         result = db.execute(text("SELECT 1 as test"))
         return {
-            "status": "thành công",
-            "message": "Kết nối cơ sở dữ liệu thành công",
-            "result": result.first()[0]
+            "status": ResponseStatus.SUCCESS,
+            "message": "Database connection test completed successfully",
+            "data": {
+                "status": "thành công",
+                "message": "Kết nối cơ sở dữ liệu thành công",
+                "result": result.first()[0]
+            }
         }
     except Exception as e:
         raise HTTPException(
@@ -164,7 +167,7 @@ async def test_db(db: Session = Depends(get_db)):
 
 # Xử lý ngoại lệ
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
+async def http_exception_handler(request: Request, exc: HTTPException):
     """
     Xử lý các ngoại lệ HTTP
 
@@ -177,12 +180,16 @@ async def http_exception_handler(request, exc):
     """
     return JSONResponse(
         status_code=exc.status_code,
-        content={"message": exc.detail},
+        content=ErrorResponseModel(
+            status=ResponseStatus.ERROR,
+            error_code=f"HTTP_{exc.status_code}",
+            message=exc.detail
+        ).dict()
     )
 
 
 @app.exception_handler(Exception)
-async def general_exception_handler(request, exc):
+async def general_exception_handler(request: Request, exc: Exception):
     """
     Xử lý các ngoại lệ chung
 
@@ -195,48 +202,22 @@ async def general_exception_handler(request, exc):
     """
     return JSONResponse(
         status_code=500,
-        content={"message": "Lỗi máy chủ nội bộ"},
+        content=ErrorResponseModel(
+            status=ResponseStatus.ERROR,
+            error_code="INTERNAL_SERVER_ERROR",
+            message="Lỗi máy chủ nội bộ"
+        ).dict()
     )
 
 
-# Bao gồm các router
+# Bao gồm các controller routers
 app.include_router(
     api_v1_router,
     prefix=API_V1_STR,
-    tags=["API"]
+    tags=["API v1"]
 )
 app.include_router(
     api_v2_router,
     prefix=API_V2_STR,
-    tags=["API"]
-)
-app.include_router(
-    api_v1_user_router,
-    prefix=f"{API_V1_STR}/users",
-    tags=["APIUsers"]
-)
-app.include_router(
-    api_v1_item_router,
-    prefix=f"{API_V1_STR}/items",
-    tags=["APIItems"]
-)
-app.include_router(
-    api_v1_math_router,
-    prefix=f"{API_V1_STR}/math",
-    tags=["APIMath"]
-)
-app.include_router(
-    api_v2_user_router,
-    prefix=f"{API_V2_STR}/users",
-    tags=["APIUsers"]
-)
-app.include_router(
-    api_v2_item_router,
-    prefix=f"{API_V2_STR}/items",
-    tags=["APIItems"]
-)
-app.include_router(
-    api_v2_math_router,
-    prefix=f"{API_V2_STR}/math",
-    tags=["APIMath"]
+    tags=["API v2"]
 )

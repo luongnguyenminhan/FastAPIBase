@@ -15,13 +15,18 @@ Last Modified: 21 Jan 2024
 Version: 1.0.0
 """
 
-from .base_service import BaseService, service_method
+from typing import List, Dict, Optional, Any, Union
+import logging
+from .base_service import BaseService, service_method, ServiceResponse
 from app.db.models import User
+from app.db.models.items import Item
 from app.repositories.user_repository import UserRepository
 from app.unit_of_work.unit_of_work import UnitOfWork
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.base import get_db
+
+logger = logging.getLogger(__name__)
 
 
 class UserService(BaseService[User]):
@@ -40,9 +45,10 @@ class UserService(BaseService[User]):
             uow (UnitOfWork): The Unit of Work instance for managing transactions
         """
         super().__init__(uow)
+        logger.info("UserService initialized")
 
     @staticmethod
-    def get_self(db: Session = Depends(get_db)):
+    def get_self(db: Session = Depends(get_db)) -> 'UserService':
         """
         Get the user service instance
 
@@ -56,7 +62,7 @@ class UserService(BaseService[User]):
         return UserService(uow)
 
     @service_method
-    async def get_by_email(self, email: str):
+    async def get_by_email(self, email: str) -> Optional[User]:
         """
         Get a user by email
 
@@ -64,22 +70,24 @@ class UserService(BaseService[User]):
             email (str): The email of the user
 
         Returns:
-            User: The user with the specified email
+            Optional[User]: The user with the specified email or None if not found
         """
+        logger.debug(f"Getting user by email: {email}")
         return self.uow.user_repository.get_by_email(email)
 
     @service_method
-    async def get_active_users(self):
+    async def get_active_users(self) -> List[User]:
         """
         Get all active users
 
         Returns:
             List[User]: A list of active users
         """
+        logger.debug("Getting all active users")
         return self.uow.user_repository.get_active_users()
 
     @service_method
-    async def get_user_items(self, user_id: int):
+    async def get_user_items(self, user_id: int) -> List[Item]:
         """
         Get items owned by a user
 
@@ -89,27 +97,30 @@ class UserService(BaseService[User]):
         Returns:
             List[Item]: A list of items owned by the user
         """
+        logger.debug(f"Getting items for user ID: {user_id}")
         return self.uow.item_repository.get_by_owner(user_id)
 
     @service_method
-    async def calculate_user_metrics(self, metric_values: list[float]) -> dict:
+    async def calculate_user_metrics(self, metric_values: List[float]) -> Dict[str, Union[float, int]]:
         """
         Calculate user metrics
 
         Args:
-            metric_values (list[float]): A list of metric values
+            metric_values (List[float]): A list of metric values
 
         Returns:
-            dict: A dictionary containing the total and average of the metric values
+            Dict[str, Union[float, int]]: A dictionary containing the total and average of the metric values
         """
+        logger.debug(f"Calculating metrics for {len(metric_values)} values")
         if not metric_values:
             return {"total": 0, "average": 0}
-        total = sum(metric_values)
-        average = total / len(metric_values)
+        
+        total: float = sum(metric_values)
+        average: float = total / len(metric_values)
         return {"total": total, "average": average}
 
     @service_method
-    async def get(self, id: int):
+    async def get(self, id: int) -> User:
         """
         Get a user by ID
 
@@ -122,8 +133,10 @@ class UserService(BaseService[User]):
         Raises:
             HTTPException: If the user is not found
         """
-        user = self.uow.user_repository.get_by_id(id)
+        logger.debug(f"Getting user by ID: {id}")
+        user: Optional[User] = self.uow.user_repository.get_by_id(id)
         if not user:
+            logger.warning(f"User with ID {id} not found")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"User with id {id} not found"
@@ -131,7 +144,7 @@ class UserService(BaseService[User]):
         return user
 
     @service_method
-    async def create(self, user: User):
+    async def create(self, user: User) -> User:
         """
         Create a new user
 
@@ -141,10 +154,20 @@ class UserService(BaseService[User]):
         Returns:
             User: The created user
         """
-        return self.uow.user_repository.add(user)
+        try:
+            logger.info(f"Creating new user with email: {user.email}")
+            with self.uow:
+                created_user: User = self.uow.user_repository.add(user)
+                self.uow.commit()
+            logger.info(f"Created user with ID: {created_user.id}")
+            return created_user
+        except Exception as e:
+            logger.error(f"Error creating user: {str(e)}")
+            self.uow.rollback()
+            raise
 
     @service_method
-    async def update(self, user: User):
+    async def update(self, user: User) -> User:
         """
         Update an existing user
 
@@ -154,10 +177,30 @@ class UserService(BaseService[User]):
         Returns:
             User: The updated user
         """
-        return self.uow.user_repository.update(user)
+        try:
+            logger.info(f"Updating user with ID: {user.id}")
+            with self.uow:
+                existing_user: Optional[User] = self.uow.user_repository.get_by_id(user.id)
+                if not existing_user:
+                    logger.warning(f"User with ID {user.id} not found for update")
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"User with id {user.id} not found"
+                    )
+                
+                self.uow.user_repository.update(user)
+                self.uow.commit()
+            logger.info(f"Updated user with ID: {user.id}")
+            return user
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error updating user: {str(e)}")
+            self.uow.rollback()
+            raise
 
     @service_method
-    async def delete(self, id: int):
+    async def delete(self, id: int) -> None:
         """
         Delete a user by ID
 
@@ -166,11 +209,27 @@ class UserService(BaseService[User]):
 
         Returns:
             None
+
+        Raises:
+            HTTPException: If the user is not found
         """
-        user = self.uow.user_repository.get_by_id(id)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with id {id} not found"
-            )
-        self.uow.user_repository.soft_delete(user)
+        try:
+            logger.info(f"Deleting user with ID: {id}")
+            with self.uow:
+                user: Optional[User] = self.uow.user_repository.get_by_id(id)
+                if not user:
+                    logger.warning(f"User with ID {id} not found for deletion")
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"User with id {id} not found"
+                    )
+                
+                self.uow.user_repository.soft_delete(user)
+                self.uow.commit()
+            logger.info(f"Deleted user with ID: {id}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error deleting user: {str(e)}")
+            self.uow.rollback()
+            raise

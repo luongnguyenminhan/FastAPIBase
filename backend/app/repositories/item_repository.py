@@ -16,6 +16,10 @@ Version: 1.0.0
 from .base_repository import BaseRepository
 from app.db.models.items import Item
 from sqlalchemy.orm import Session
+from typing import List, Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ItemRepository(BaseRepository[Item]):
@@ -34,8 +38,9 @@ class ItemRepository(BaseRepository[Item]):
             db (Session): The database session
         """
         super().__init__(Item, db)
+        logger.info("ItemRepository initialized")
 
-    def get_by_owner(self, owner_id: int):
+    def get_by_owner(self, owner_id: int) -> List[Item]:
         """
         Get items owned by a user
 
@@ -45,9 +50,10 @@ class ItemRepository(BaseRepository[Item]):
         Returns:
             List[Item]: A list of items owned by the user
         """
+        logger.debug(f"Getting items for owner_id: {owner_id}")
         return self._dbSet.filter_by(owner_id=owner_id, is_deleted=False).all()
 
-    def get_by_category(self, category: str):
+    def get_by_category(self, category: str) -> List[Item]:
         """
         Get items by category
 
@@ -57,9 +63,10 @@ class ItemRepository(BaseRepository[Item]):
         Returns:
             List[Item]: A list of items in the specified category
         """
+        logger.debug(f"Getting items for category: {category}")
         return self._dbSet.filter_by(category=category, is_deleted=False).all()
 
-    def update_stock(self, id: int, quantity: int):
+    def update_stock(self, id: int, quantity: int) -> Optional[int]:
         """
         Update the stock of an item
 
@@ -68,11 +75,17 @@ class ItemRepository(BaseRepository[Item]):
             quantity (int): The new quantity of the item
 
         Returns:
-            int: The updated stock quantity of the item, or None if the item is not found
+            Optional[int]: The updated stock quantity of the item, or None if the item is not found
         """
-        item = self.get_by_id(id)
-        if item:
-            item.stock = quantity
-            self.update(item)
-            return item.stock
-        return None
+        try:
+            item: Optional[Item] = self.get_by_id(id)
+            if item:
+                item.stock = quantity
+                self.update(item)
+                logger.info(f"Updated stock for item id {id} to {quantity}")
+                return item.stock
+            logger.warning(f"Attempted to update stock for non-existent item id: {id}")
+            return None
+        except Exception as e:
+            logger.error(f"Error updating stock for item id {id}: {str(e)}")
+            raise

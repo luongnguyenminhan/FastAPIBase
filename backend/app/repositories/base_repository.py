@@ -15,13 +15,15 @@ Version: 1.0.0
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from typing import Generic, TypeVar, Type, List
+from typing import Generic, TypeVar, Type, List, Optional
 from sqlalchemy.future import select
 from datetime import datetime
-from app.schemas.common import PaginationParameter, Pagination
+import logging
+from app.schemas.business_model.common import PaginationParameterModel, PaginatedResultModel
 from app.db.models.base_model import BaseModel
 
 T = TypeVar('T', bound=BaseModel)
+logger = logging.getLogger(__name__)
 
 
 class BaseRepository(Generic[T]):
@@ -42,11 +44,12 @@ class BaseRepository(Generic[T]):
             model (Type[T]): The model class
             db (Session): The database session
         """
-        self.model = model
-        self.db = db
+        self.model: Type[T] = model
+        self.db: Session = db
         self._dbSet = db.query(model)
+        logger.info(f"Initialized {self.__class__.__name__} for model {model.__name__}")
 
-    def get_by_id(self, id: int) -> T:
+    def get_by_id(self, id: int) -> Optional[T]:
         """
         Get an entity by ID
 
@@ -54,8 +57,9 @@ class BaseRepository(Generic[T]):
             id (int): The ID of the entity
 
         Returns:
-            T: The entity with the specified ID
+            Optional[T]: The entity with the specified ID or None if not found
         """
+        logger.debug(f"Getting {self.model.__name__} by id: {id}")
         return self._dbSet.filter_by(id=id, is_deleted=False).first()
 
     def get_all(self) -> List[T]:
@@ -65,6 +69,7 @@ class BaseRepository(Generic[T]):
         Returns:
             List[T]: A list of all entities
         """
+        logger.debug(f"Getting all {self.model.__name__} entities")
         return self._dbSet.filter_by(is_deleted=False).all()
 
     def add(self, entity: T) -> T:
@@ -77,97 +82,148 @@ class BaseRepository(Generic[T]):
         Returns:
             T: The added entity
         """
-        entity.create_date = datetime.utcnow()
-        self.db.add(entity)
-        self.db.flush()
-        return entity
+        try:
+            entity.create_date = datetime.utcnow()
+            self.db.add(entity)
+            self.db.flush()
+            logger.info(f"Added new {self.model.__name__} with id: {entity.id}")
+            return entity
+        except Exception as e:
+            logger.error(f"Error adding {self.model.__name__}: {str(e)}")
+            raise
 
-    def add_range(self, entities: List[T]):
+    def add_range(self, entities: List[T]) -> None:
         """
         Add a range of entities
 
         Args:
             entities (List[T]): The list of entities to add
         """
-        current_time = datetime.utcnow()
-        for entity in entities:
-            entity.create_date = current_time
-        self.db.add_all(entities)
-        self.db.flush()
+        try:
+            current_time: datetime = datetime.utcnow()
+            for entity in entities:
+                entity.create_date = current_time
+            self.db.add_all(entities)
+            self.db.flush()
+            logger.info(f"Added {len(entities)} {self.model.__name__} entities")
+        except Exception as e:
+            logger.error(f"Error adding range of {self.model.__name__}: {str(e)}")
+            raise
 
-    def update(self, entity: T):
+    def update(self, entity: T) -> None:
         """
         Update an existing entity
 
         Args:
             entity (T): The entity to update
         """
-        entity.update_date = datetime.utcnow()
-        self._dbSet.update(entity)
+        try:
+            entity.update_date = datetime.utcnow()
+            self.db.merge(entity)
+            self.db.flush()
+            logger.info(f"Updated {self.model.__name__} with id: {entity.id}")
+        except Exception as e:
+            logger.error(f"Error updating {self.model.__name__}: {str(e)}")
+            raise
 
-    def soft_delete(self, entity: T):
+    def soft_delete(self, entity: T) -> None:
         """
         Soft delete an entity
 
         Args:
             entity (T): The entity to soft delete
         """
-        entity.is_deleted = True
-        self._dbSet.update(entity)
+        try:
+            entity.is_deleted = True
+            entity.update_date = datetime.utcnow()
+            self.db.merge(entity)
+            self.db.flush()
+            logger.info(f"Soft deleted {self.model.__name__} with id: {entity.id}")
+        except Exception as e:
+            logger.error(f"Error soft deleting {self.model.__name__}: {str(e)}")
+            raise
 
-    def soft_delete_range(self, entities: List[T]):
+    def soft_delete_range(self, entities: List[T]) -> None:
         """
         Soft delete a range of entities
 
         Args:
             entities (List[T]): The list of entities to soft delete
         """
-        for entity in entities:
-            entity.is_deleted = True
-        self._dbSet.update(entities)
+        try:
+            current_time: datetime = datetime.utcnow()
+            for entity in entities:
+                entity.is_deleted = True
+                entity.update_date = current_time
+            
+            for entity in entities:
+                self.db.merge(entity)
+            self.db.flush()
+            logger.info(f"Soft deleted {len(entities)} {self.model.__name__} entities")
+        except Exception as e:
+            logger.error(f"Error soft deleting range of {self.model.__name__}: {str(e)}")
+            raise
 
-    def permanent_delete(self, entity: T):
+    def permanent_delete(self, entity: T) -> None:
         """
         Permanently delete an entity
 
         Args:
             entity (T): The entity to permanently delete
         """
-        self.db.delete(entity)
+        try:
+            self.db.delete(entity)
+            self.db.flush()
+            logger.info(f"Permanently deleted {self.model.__name__} with id: {entity.id}")
+        except Exception as e:
+            logger.error(f"Error permanently deleting {self.model.__name__}: {str(e)}")
+            raise
 
-    def permanent_delete_list(self, entities: List[T]):
+    def permanent_delete_list(self, entities: List[T]) -> None:
         """
         Permanently delete a list of entities
 
         Args:
             entities (List[T]): The list of entities to permanently delete
         """
-        for entity in entities:
-            self.db.delete(entity)
+        try:
+            for entity in entities:
+                self.db.delete(entity)
+            self.db.flush()
+            logger.info(f"Permanently deleted {len(entities)} {self.model.__name__} entities")
+        except Exception as e:
+            logger.error(f"Error permanently deleting list of {self.model.__name__}: {str(e)}")
+            raise
 
-    def to_pagination(self, pagination_parameter: PaginationParameter) -> Pagination[T]:
+    def to_pagination(self, pagination_parameter: PaginationParameterModel) -> PaginatedResultModel[T]:
         """
         Convert query results to paginated results
 
         Args:
-            pagination_parameter (PaginationParameter): The pagination parameters
+            pagination_parameter (PaginationParameterModel): The pagination parameters
 
         Returns:
-            Pagination[T]: The paginated results
+            PaginatedResultModel[T]: The paginated results
         """
-        query = self._dbSet.filter_by(is_deleted=False)
+        try:
+            query = self._dbSet.filter_by(is_deleted=False)
 
-        # Get total count
-        total_count = query.count()
+            # Get total count
+            total_count: int = query.count()
 
-        # Get paginated items
-        items = query.offset(
-            (pagination_parameter.page_index - 1) * pagination_parameter.page_size
-        ).limit(pagination_parameter.page_size).all()
+            # Get paginated items
+            items: List[T] = query.offset(
+                (pagination_parameter.page_index - 1) * pagination_parameter.page_size
+            ).limit(pagination_parameter.page_size).all()
 
-        return Pagination(
-            items=items,
-            total_count=total_count,
-            page_index=pagination_parameter.page_index,
-            page_size=pagination_parameter.page_size
-        )
+            logger.debug(f"Paginated {self.model.__name__} results: page {pagination_parameter.page_index}, count {len(items)}, total {total_count}")
+            
+            return PaginatedResultModel(
+                items=items,
+                total_count=total_count,
+                page_index=pagination_parameter.page_index,
+                page_size=pagination_parameter.page_size
+            )
+        except Exception as e:
+            logger.error(f"Error paginating {self.model.__name__}: {str(e)}")
+            raise
