@@ -1,5 +1,6 @@
 import logging
 
+from backend.app.services.utils.exceptions.exceptions import APIException
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -8,7 +9,7 @@ from backend.app.db.base import get_db
 from backend.app.schemas.user import GoogleTokenRequest, AuthResponse
 from backend.app.services.services.google_auth_service import GoogleAuthService
 from backend.app.unit_of_work.unit_of_work import UnitOfWork
-from backend.app.schemas.business_model.response_base import BaseResponseModel, SuccessResponseModel
+from backend.app.schemas.business_model.response_base import BaseResponseModel, ErrorResponseModel, SuccessResponseModel
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,11 @@ class GoogleAuthController:
             )
         except Exception as e:
             logger.exception("Google login failed")
-            raise HTTPException(status_code=500, detail=str(e))
+            raise APIException(
+                status_code=500,
+                error_code="GOOGLE_LOGIN_FAILED",
+                message=str(e),
+            )
 
 
 # Create router instance
