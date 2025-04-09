@@ -17,11 +17,11 @@ Dependencies:
 
 Author: Minh An
 Last Modified: 23 Jun 2024
-Version: 2.0.0
+Version: 2.0.1
 """
 
-from app.controllers.v1 import api_router as api_v1_router
-from app.controllers.v2 import api_router as api_v2_router
+from app.controllers.v1 import router as api_v1_router
+#from app.controllers.v2 import api_router as api_v2_router
 from app.core.config import settings
 from app.db.base import get_db
 from app.schemas.business_model.response_base import ErrorResponseModel, BaseResponseModel, ResponseStatus, \
@@ -69,10 +69,10 @@ app = FastAPI(
 # Cấu hình CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[" *"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=[" *"],
+    allow_headers=[" *"],
 )
 
 # Đăng ký các exception handlers từ app.services.utils.exceptions.exceptions
@@ -114,7 +114,7 @@ async def test_db_connection(db: Session = Depends(get_db)) -> SuccessResponseMo
         return SuccessResponseModel(
             message="Database connection successful",
             data={"database_test": result == 1},
-            metadata={"database_uri": settings.SQLALCHEMY_DATABASE_URI.replace(settings.DB_PASSWORD, "****")}
+            metadata={"database_uri": settings.SQLALCHEMY_DATABASE_URI.replace(settings.DB_PASSWORD, " ****")}
         )
     except Exception as e:
         raise InternalServerException(
@@ -165,9 +165,4 @@ app.include_router(
     api_v1_router,
     prefix=settings.API_V1_STR,
     tags=["API v1"]
-)
-app.include_router(
-    api_v2_router,
-    prefix=settings.API_V2_STR,
-    tags=["API v2"]
 )

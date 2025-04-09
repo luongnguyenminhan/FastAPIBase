@@ -10,7 +10,7 @@ Dependencies:
 
 Author: Minh An
 Last Modified: 23 Jun 2024
-Version: 1.0.1
+Version: 1.0.2
 """
 
 import os
@@ -37,6 +37,13 @@ class AppSettings(BaseSettings):
 
     # Define SQLALCHEMY_DATABASE_URI as an actual field with default value of None
     SQLALCHEMY_DATABASE_URI: Optional[str] = None
+
+    # Google Auth settings
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "YOUR_GOOGLE_CLIENT_ID")
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "YOUR_SECRET_KEY")  # For JWT
+    ALGORITHM: str = os.getenv("ALGORITHM", "HS256")  # JWT algorithm
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv(
+        "ACCESS_TOKEN_EXPIRE_MINUTES", "30"))  # Token validity duration
 
     @property
     def DATABASE_URL(self) -> str:
